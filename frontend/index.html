@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PuzzleZen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a0f;
+  --bg2:#13131a;
+  --bg3:#1c1c26;
+  --border:#2a2a38;
+  --text:#f0f0f8;
+  --muted:#6b6b85;
+  --easy:#22c987;
+  --medium:#f5a623;
+  --hard:#e8445a;
+  --accent:#7c6af7;
+  --font-head:'Syne',sans-serif;
+  --font-mono:'DM Mono',monospace;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--font-mono);min-height:100vh;overflow-x:hidden}
+
+/* NOISE OVERLAY */
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:.4}
+
+/* GRID BACKGROUND */
+body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:40px 40px;opacity:.3;pointer-events:none;z-index:0}
+
+#app{position:relative;z-index:1}
+
+/* ── HEADER ── */
+header{display:flex;align-items:center;justify-content:space-between;padding:1.5rem 2.5rem;border-bottom:1px solid var(--border)}
+.logo{font-family:var(--font-head);font-size:1.5rem;font-weight:800;letter-spacing:-.03em}
+.logo span{color:var(--accent)}
+.header-user{font-size:.75rem;color:var(--muted);display:flex;align-items:center;gap:.5rem}
+.header-user .pill{background:var(--bg3);border:1px solid var(--border);padding:4px 10px;border-radius:20px;color:var(--text);font-size:.7rem}
+
+/* ── PAGES ── */
+.page{min-height:calc(100vh - 65px);display:none}
+.page.active{display:block}
+
+/* ── LOGIN PAGE ── */
+.login-wrap{display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 65px);padding:2rem}
+.login-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:2.5rem;width:100%;max-width:400px}
+.login-title{font-family:var(--font-head);font-size:1.8rem;font-weight:800;margin-bottom:.5rem}
+.login-sub{color:var(--muted);font-size:.8rem;margin-bottom:2rem}
+.field{margin-bottom:1rem}
+.field label{display:block;font-size:.7rem;color:var(--muted);margin-bottom:.4rem;letter-spacing:.05em;text-transform:uppercase}
+.field input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:.7rem 1rem;color:var(--text);font-family:var(--font-mono);font-size:.85rem;outline:none;transition:border .2s}
+.field input:focus{border-color:var(--accent)}
+.btn-primary{width:100%;background:var(--accent);color:#fff;border:none;border-radius:8px;padding:.8rem;font-family:var(--font-head);font-weight:700;font-size:.9rem;cursor:pointer;transition:opacity .2s,transform .1s;margin-top:.5rem}
+.btn-primary:hover{opacity:.85}
+.btn-primary:active{transform:scale(.98)}
+.login-switch{text-align:center;margin-top:1.2rem;font-size:.75rem;color:var(--muted)}
+.login-switch a{color:var(--accent);cursor:pointer;text-decoration:none}
+.error-msg{color:var(--hard);font-size:.75rem;margin-top:.5rem;display:none}
+.error-msg.show{display:block}
+
+/* ── DIFFICULTY PAGE ── */
+.diff-wrap{max-width:900px;margin:0 auto;padding:4rem 2rem}
+.diff-hero{margin-bottom:3rem}
+.diff-hero h1{font-family:var(--font-head);font-size:3rem;font-weight:800;line-height:1;margin-bottom:.75rem}
+.diff-hero p{color:var(--muted);font-size:.85rem}
+.diff-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}
+.diff-card{border:1px solid var(--border);border-radius:12px;padding:2rem 1.5rem;cursor:pointer;transition:border-color .2s,transform .15s,background .2s;background:var(--bg2);position:relative;overflow:hidden}
+.diff-card::before{content:'';position:absolute;inset:0;opacity:0;transition:opacity .2s}
+.diff-card:hover{transform:translateY(-3px)}
+.diff-card.easy:hover{border-color:var(--easy)}
+.diff-card.easy::before{background:radial-gradient(circle at 50% 0,rgba(34,201,135,.07),transparent 70%)}
+.diff-card.medium:hover{border-color:var(--medium)}
+.diff-card.medium::before{background:radial-gradient(circle at 50% 0,rgba(245,166,35,.07),transparent 70%)}
+.diff-card.hard:hover{border-color:var(--hard)}
+.diff-card.hard::before{background:radial-gradient(circle at 50% 0,rgba(232,68,90,.07),transparent 70%)}
+.diff-card:hover::before{opacity:1}
+.diff-badge{display:inline-block;font-size:.65rem;font-weight:600;padding:3px 10px;border-radius:20px;margin-bottom:1rem;letter-spacing:.08em;text-transform:uppercase}
+.easy .diff-badge{background:rgba(34,201,135,.15);color:var(--easy)}
+.medium .diff-badge{background:rgba(245,166,35,.15);color:var(--medium)}
+.hard .diff-badge{background:rgba(232,68,90,.15);color:var(--hard)}
+.diff-card h2{font-family:var(--font-head);font-size:1.4rem;font-weight:700;margin-bottom:.5rem}
+.diff-card p{font-size:.75rem;color:var(--muted);line-height:1.6}
+.diff-games{margin-top:1rem;display:flex;flex-direction:column;gap:.3rem}
+.diff-game-item{font-size:.7rem;color:var(--muted);display:flex;align-items:center;gap:.4rem}
+.diff-game-item::before{content:'';width:4px;height:4px;border-radius:50%;background:var(--muted);flex-shrink:0}
+
+/* ── SESSION PAGE ── */
+.session-wrap{max-width:1000px;margin:0 auto;padding:3rem 2rem}
+.session-header{display:flex;align-items:center;gap:1rem;margin-bottom:2rem}
+.back-btn{background:none;border:1px solid var(--border);color:var(--muted);padding:6px 14px;border-radius:6px;cursor:pointer;font-family:var(--font-mono);font-size:.75rem;transition:border-color .2s,color .2s}
+.back-btn:hover{border-color:var(--text);color:var(--text)}
+.session-title{font-family:var(--font-head);font-size:1.6rem;font-weight:700}
+.session-badge{font-size:.7rem;padding:3px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:.08em}
+.games-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem}
+.game-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1.5rem;cursor:pointer;transition:border-color .2s,transform .15s}
+.game-card:hover{transform:translateY(-2px);border-color:var(--accent)}
+.game-card.completed{border-color:var(--easy);opacity:.7;pointer-events:none}
+.game-num{font-size:.65rem;color:var(--muted);margin-bottom:.8rem;letter-spacing:.1em}
+.game-type-icon{font-size:1.8rem;margin-bottom:.8rem}
+.game-name{font-family:var(--font-head);font-size:1.1rem;font-weight:700;margin-bottom:.4rem}
+.game-meta{font-size:.72rem;color:var(--muted);display:flex;gap:.8rem}
+.game-meta span{display:flex;align-items:center;gap:.3rem}
+.completed-stamp{color:var(--easy);font-size:.75rem;margin-top:.8rem;display:none}
+.game-card.completed .completed-stamp{display:block}
+
+/* ── GAME MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(4px);z-index:100;display:none;align-items:center;justify-content:center;padding:1rem}
+.modal-overlay.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:16px;width:100%;max-width:580px;max-height:90vh;overflow-y:auto}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:1.5rem;border-bottom:1px solid var(--border)}
+.modal-head h3{font-family:var(--font-head);font-size:1.2rem;font-weight:700}
+.modal-close{background:none;border:1px solid var(--border);color:var(--muted);width:30px;height:30px;border-radius:6px;cursor:pointer;font-size:1rem;transition:color .2s}
+.modal-close:hover{color:var(--text)}
+.modal-body{padding:1.5rem}
+.timer-bar{background:var(--bg3);border-radius:4px;height:4px;margin-bottom:1.5rem;overflow:hidden}
+.timer-fill{height:100%;background:var(--accent);border-radius:4px;transition:width 1s linear}
+.timer-label{font-size:.72rem;color:var(--muted);margin-bottom:0.5rem;text-align:right;margin-bottom:.5rem}
+
+/* SUDOKU */
+.sudoku-grid{display:grid;gap:4px;margin:1rem auto;width:fit-content}
+.sudoku-grid.g4{grid-template-columns:repeat(4,52px)}
+.sudoku-cell{width:52px;height:52px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;text-align:center;font-family:var(--font-mono);font-size:1.1rem;color:var(--text);outline:none;transition:border-color .2s}
+.sudoku-cell:focus{border-color:var(--accent)}
+.sudoku-cell[data-given="true"]{background:var(--bg);color:var(--accent);font-weight:600;pointer-events:none}
+.sudoku-cell.wrong{border-color:var(--hard);color:var(--hard)}
+.sudoku-cell.correct{border-color:var(--easy);color:var(--easy)}
+
+/* MORSE */
+.morse-msg{font-family:var(--font-mono);font-size:1.5rem;letter-spacing:.2em;color:var(--accent);text-align:center;padding:1.5rem;background:var(--bg3);border-radius:8px;margin-bottom:1.5rem}
+.answer-input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:.8rem 1rem;color:var(--text);font-family:var(--font-mono);font-size:1.1rem;text-align:center;text-transform:uppercase;outline:none;letter-spacing:.15em}
+.answer-input:focus{border-color:var(--accent)}
+.morse-hint{font-size:.72rem;color:var(--muted);text-align:center;margin-top:.8rem}
+.morse-table{display:grid;grid-template-columns:repeat(4,1fr);gap:.4rem;margin-top:1.2rem}
+.morse-row{background:var(--bg3);border-radius:6px;padding:.4rem .6rem;font-size:.68rem;display:flex;justify-content:space-between}
+.morse-row .letter{color:var(--accent);font-weight:600}
+.morse-row .code{color:var(--muted)}
+
+/* PARKING */
+.parking-wrap{position:relative;margin:0 auto;width:fit-content}
+.parking-grid{display:grid;grid-template-columns:repeat(6,52px);grid-template-rows:repeat(6,52px);gap:3px;background:var(--bg3);padding:6px;border-radius:8px;position:relative}
+.parking-cell{background:var(--bg);border-radius:4px}
+.car-block{position:absolute;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;cursor:grab;transition:background .2s;user-select:none}
+.car-block:active{cursor:grabbing}
+.car-target{background:rgba(232,68,90,.25);border:2px solid var(--hard);color:var(--hard)}
+.car-other{background:rgba(124,106,247,.18);border:2px solid rgba(124,106,247,.5);color:var(--accent)}
+.exit-arrow{position:absolute;right:-28px;top:50%;transform:translateY(-50%);color:var(--easy);font-size:1.2rem}
+
+/* SUCCESS / FAIL */
+.result-box{text-align:center;padding:2rem}
+.result-icon{font-size:3rem;margin-bottom:1rem}
+.result-title{font-family:var(--font-head);font-size:1.5rem;font-weight:800;margin-bottom:.5rem}
+.result-sub{color:var(--muted);font-size:.8rem;margin-bottom:1.5rem}
+.result-score{font-size:2rem;font-weight:700;color:var(--accent);margin-bottom:1.5rem}
+.btn-sec{background:none;border:1px solid var(--border);color:var(--text);padding:.7rem 1.5rem;border-radius:8px;font-family:var(--font-mono);font-size:.8rem;cursor:pointer;transition:border-color .2s}
+.btn-sec:hover{border-color:var(--accent);color:var(--accent)}
+
+/* LEADERBOARD */
+.lb-wrap{max-width:600px;margin:0 auto;padding:3rem 2rem}
+.lb-title{font-family:var(--font-head);font-size:2rem;font-weight:800;margin-bottom:.5rem}
+.lb-sub{color:var(--muted);font-size:.8rem;margin-bottom:2rem}
+.lb-row{display:flex;align-items:center;gap:1rem;padding:1rem 1.2rem;background:var(--bg2);border:1px solid var(--border);border-radius:10px;margin-bottom:.5rem;transition:border-color .2s}
+.lb-row:hover{border-color:var(--border)}
+.lb-row.me{border-color:var(--accent)}
+.lb-rank{font-size:.8rem;color:var(--muted);width:20px;text-align:center;flex-shrink:0}
+.lb-rank.top{color:var(--medium);font-weight:700}
+.lb-name{flex:1;font-size:.85rem}
+.lb-score{font-family:var(--font-head);font-size:1rem;font-weight:700;color:var(--accent)}
+
+/* NAV TABS */
+.nav-tabs{display:flex;gap:.5rem;padding:.8rem 2.5rem;border-bottom:1px solid var(--border)}
+.nav-tab{background:none;border:none;color:var(--muted);font-family:var(--font-mono);font-size:.75rem;cursor:pointer;padding:.4rem .8rem;border-radius:6px;transition:color .2s,background .2s}
+.nav-tab:hover{color:var(--text)}
+.nav-tab.active{color:var(--text);background:var(--bg3)}
+
+/* LOADING */
+.loading{display:flex;align-items:center;justify-content:center;padding:4rem;color:var(--muted);font-size:.8rem;gap:.5rem}
+.spinner{width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* TOAST */
+.toast{position:fixed;bottom:2rem;right:2rem;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:.8rem 1.2rem;font-size:.78rem;z-index:200;opacity:0;transform:translateY(8px);transition:opacity .3s,transform .3s;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.success{border-color:var(--easy);color:var(--easy)}
+.toast.error{border-color:var(--hard);color:var(--hard)}
+
+@media(max-width:700px){
+  .diff-grid,.games-grid{grid-template-columns:1fr}
+  header{padding:1rem 1.2rem}
+  .diff-wrap,.session-wrap,.lb-wrap{padding:2rem 1.2rem}
+  .diff-hero h1{font-size:2rem}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="logo">Puzzle<span>Zen</span></div>
+    <div class="header-user">
+      <span id="header-username" class="pill" style="display:none"></span>
+      <span id="header-score" style="display:none"></span>
+      <button id="logout-btn" class="btn-sec" style="display:none;padding:4px 12px;font-size:.7rem" onclick="logout()">Déconnexion</button>
+    </div>
+  </header>
+
+  <nav class="nav-tabs" id="nav-tabs" style="display:none">
+    <button class="nav-tab active" onclick="showSection('difficulty')">Jouer</button>
+    <button class="nav-tab" onclick="showSection('leaderboard')">Classement</button>
+  </nav>
+
+  <!-- LOGIN -->
+  <div class="page active" id="page-auth">
+    <div class="login-wrap">
+      <div class="login-card">
+        <h1 class="login-title" id="auth-title">Connexion</h1>
+        <p class="login-sub" id="auth-sub">Connecte-toi pour jouer et sauvegarder ton score.</p>
+        <div class="field" id="field-email" style="display:none">
+          <label>Email</label>
+          <input type="email" id="input-email" placeholder="toi@example.com"/>
+        </div>
+        <div class="field">
+          <label>Nom d'utilisateur</label>
+          <input type="text" id="input-username" placeholder="morgan"/>
+        </div>
+        <div class="field">
+          <label>Mot de passe</label>
+          <input type="password" id="input-password" placeholder="••••••••"/>
+        </div>
+        <p class="error-msg" id="auth-error"></p>
+        <button class="btn-primary" id="auth-btn" onclick="submitAuth()">Se connecter</button>
+        <p class="login-switch" id="auth-switch">
+          Pas de compte ? <a onclick="toggleAuthMode()">S'inscrire</a>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- DIFFICULTY -->
+  <div class="page" id="page-difficulty">
+    <div class="diff-wrap">
+      <div class="diff-hero">
+        <h1>Choisis ton défi</h1>
+        <p>3 jeux sélectionnés aléatoirement pour chaque niveau.</p>
+      </div>
+      <div class="diff-grid">
+        <div class="diff-card easy" onclick="startSession('EASY')">
+          <span class="diff-badge">Facile</span>
+          <h2>Débutant</h2>
+          <p>Idéal pour s'échauffer. Puzzles accessibles avec des règles simples.</p>
+          <div class="diff-games">
+            <div class="diff-game-item">Sudoku 4×4</div>
+            <div class="diff-game-item">Puzzle image</div>
+            <div class="diff-game-item">Morse</div>
+          </div>
+        </div>
+        <div class="diff-card medium" onclick="startSession('MEDIUM')">
+          <span class="diff-badge">Intermédiaire</span>
+          <h2>Confirmé</h2>
+          <p>La réflexion s'intensifie. Il faut planifier ses mouvements.</p>
+          <div class="diff-games">
+            <div class="diff-game-item">Parking Rush</div>
+            <div class="diff-game-item">Labyrinthe</div>
+            <div class="diff-game-item">Recréer l'image</div>
+          </div>
+        </div>
+        <div class="diff-card hard" onclick="startSession('HARD')">
+          <span class="diff-badge">Difficile</span>
+          <h2>Expert</h2>
+          <p>Réservé aux meilleurs. Chaque seconde compte.</p>
+          <div class="diff-games">
+            <div class="diff-game-item">Sudoku 9×9</div>
+            <div class="diff-game-item">Chiffrement César</div>
+            <div class="diff-game-item">Tour de Hanoï</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SESSION -->
+  <div class="page" id="page-session">
+    <div class="session-wrap">
+      <div class="session-header">
+        <button class="back-btn" onclick="showSection('difficulty')">← Retour</button>
+        <h2 class="session-title" id="session-title">Session</h2>
+        <span class="session-badge" id="session-badge"></span>
+      </div>
+      <div class="games-grid" id="games-grid">
+        <div class="loading"><div class="spinner"></div> Chargement des jeux...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LEADERBOARD -->
+  <div class="page" id="page-leaderboard">
+    <div class="lb-wrap">
+      <h1 class="lb-title">Classement</h1>
+      <p class="lb-sub">Les meilleurs joueurs de la semaine</p>
+      <div id="lb-list"><div class="loading"><div class="spinner"></div> Chargement...</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- GAME MODAL -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModalOutside(event)">
+  <div class="modal" id="modal">
+    <div class="modal-head">
+      <h3 id="modal-title">Jeu</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = 'http://localhost:8080';
+let token = localStorage.getItem('pz_token');
+let username = localStorage.getItem('pz_user');
+let currentSession = [];
+let currentDiff = '';
+let completedGames = new Set();
+let sessionScore = 0;
+let timerInterval = null;
+let timeLeft = 0;
+let isRegister = false;
+
+// ── AUTH ─────────────────────────────────────────────────────────
+function toggleAuthMode() {
+  isRegister = !isRegister;
+  document.getElementById('auth-title').textContent = isRegister ? 'Inscription' : 'Connexion';
+  document.getElementById('auth-sub').textContent = isRegister
+    ? 'Crée ton compte pour sauvegarder tes scores.'
+    : 'Connecte-toi pour jouer et sauvegarder ton score.';
+  document.getElementById('field-email').style.display = isRegister ? 'block' : 'none';
+  document.getElementById('auth-btn').textContent = isRegister ? "S'inscrire" : 'Se connecter';
+  document.getElementById('auth-switch').innerHTML = isRegister
+    ? 'Déjà un compte ? <a onclick="toggleAuthMode()">Se connecter</a>'
+    : "Pas de compte ? <a onclick=\"toggleAuthMode()\">S'inscrire</a>";
+}
+
+async function submitAuth() {
+  const u = document.getElementById('input-username').value.trim();
+  const p = document.getElementById('input-password').value;
+  const e = document.getElementById('input-email').value.trim();
+  const err = document.getElementById('auth-error');
+  err.classList.remove('show');
+
+  if (!u || !p) { showError('Remplis tous les champs.'); return; }
+
+  const url = isRegister ? `${API}/api/auth/register` : `${API}/api/auth/login`;
+  const body = isRegister ? { username: u, email: e, password: p } : { username: u, password: p };
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Erreur');
+    token = data.token;
+    username = data.username;
+    localStorage.setItem('pz_token', token);
+    localStorage.setItem('pz_user', username);
+    afterLogin();
+  } catch(ex) {
+    showError(ex.message || 'Identifiants incorrects.');
+  }
+}
+
+function showError(msg) {
+  const err = document.getElementById('auth-error');
+  err.textContent = msg;
+  err.classList.add('show');
+}
+
+function afterLogin() {
+  document.getElementById('page-auth').classList.remove('active');
+  document.getElementById('nav-tabs').style.display = 'flex';
+  document.getElementById('header-username').textContent = username;
+  document.getElementById('header-username').style.display = 'inline';
+  document.getElementById('logout-btn').style.display = 'inline';
+  showSection('difficulty');
+}
+
+function logout() {
+  localStorage.removeItem('pz_token');
+  localStorage.removeItem('pz_user');
+  token = null; username = null;
+  document.getElementById('nav-tabs').style.display = 'none';
+  document.getElementById('header-username').style.display = 'none';
+  document.getElementById('logout-btn').style.display = 'none';
+  showPage('page-auth');
+  document.getElementById('page-auth').classList.add('active');
+}
+
+// ── NAVIGATION ────────────────────────────────────────────────────
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function showSection(name) {
+  document.querySelectorAll('.nav-tab').forEach((t,i) => {
+    t.classList.toggle('active', ['difficulty','leaderboard'][i] === name);
+  });
+  if (name === 'difficulty') showPage('page-difficulty');
+  else if (name === 'leaderboard') { showPage('page-leaderboard'); loadLeaderboard(); }
+}
+
+// ── SESSION ───────────────────────────────────────────────────────
+async function startSession(diff) {
+  currentDiff = diff;
+  completedGames.clear();
+  sessionScore = 0;
+  showPage('page-session');
+
+  const labels = { EASY:'Facile', MEDIUM:'Intermédiaire', HARD:'Difficile' };
+  const colors = { EASY:'var(--easy)', MEDIUM:'var(--medium)', HARD:'var(--hard)' };
+  document.getElementById('session-title').textContent = `Session ${labels[diff]}`;
+  const badge = document.getElementById('session-badge');
+  badge.textContent = labels[diff];
+  badge.style.background = colors[diff] + '22';
+  badge.style.color = colors[diff];
+
+  const grid = document.getElementById('games-grid');
+  grid.innerHTML = '<div class="loading"><div class="spinner"></div> Chargement des jeux...</div>';
+
+  try {
+    const res = await fetch(`${API}/api/games/session?difficulty=${diff}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    currentSession = await res.json();
+    renderSessionGrid();
+  } catch {
+    grid.innerHTML = '<p style="color:var(--hard);padding:2rem">Erreur de connexion au serveur.</p>';
+  }
+}
+
+const GAME_ICONS = {
+  SUDOKU_4x4:'⊞', SUDOKU_9x9:'⊟', PUZZLE_IMAGE:'🧩',
+  MORSE_DECODE:'•−', PARKING_RUSH:'🚗', LABYRINTH:'⬡',
+  IMAGE_RECREATE:'◈', CAESAR_CIPHER:'🔐', HANOI_TOWER:'△'
+};
+const GAME_LABELS = {
+  SUDOKU_4x4:'Sudoku 4×4', SUDOKU_9x9:'Sudoku 9×9', PUZZLE_IMAGE:'Puzzle image',
+  MORSE_DECODE:'Décode le morse', PARKING_RUSH:'Parking Rush', LABYRINTH:'Labyrinthe',
+  IMAGE_RECREATE:"Recréer l'image", CAESAR_CIPHER:'Chiffrement César', HANOI_TOWER:'Tour de Hanoï'
+};
+
+function renderSessionGrid() {
+  const grid = document.getElementById('games-grid');
+  grid.innerHTML = currentSession.map((g, i) => `
+    <div class="game-card ${completedGames.has(g.id) ? 'completed' : ''}" id="gc-${g.id}" onclick="openGame(${i})">
+      <div class="game-num">JEU ${i+1} / 3</div>
+      <div class="game-type-icon">${GAME_ICONS[g.type] || '?'}</div>
+      <div class="game-name">${GAME_LABELS[g.type] || g.type}</div>
+      <div class="game-meta">
+        <span>⏱ ${g.config.timeLimit}s</span>
+      </div>
+      <div class="completed-stamp">✓ Terminé</div>
+    </div>
+  `).join('');
+}
+
+// ── GAME MODAL ────────────────────────────────────────────────────
+function openGame(idx) {
+  const game = currentSession[idx];
+  document.getElementById('modal-title').textContent = GAME_LABELS[game.type] || game.type;
+  document.getElementById('modal-overlay').classList.add('open');
+  renderGame(game);
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+  clearInterval(timerInterval);
+}
+
+function closeModalOutside(e) {
+  if (e.target === document.getElementById('modal-overlay')) closeModal();
+}
+
+function startTimer(seconds, onTick, onEnd) {
+  clearInterval(timerInterval);
+  timeLeft = seconds;
+  onTick(timeLeft);
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    onTick(timeLeft);
+    if (timeLeft <= 0) { clearInterval(timerInterval); onEnd(); }
+  }, 1000);
+}
+
+// ── GAME RENDERERS ────────────────────────────────────────────────
+function renderGame(game) {
+  const body = document.getElementById('modal-body');
+  if (game.type === 'SUDOKU_4x4') renderSudoku(game, body, 4);
+  else if (game.type === 'MORSE_DECODE') renderMorse(game, body);
+  else if (game.type === 'PARKING_RUSH') renderParking(game, body);
+  else if (game.type === 'CAESAR_CIPHER') renderCaesar(game, body);
+  else renderGeneric(game, body);
+}
+
+function timerHTML(t) {
+  return `<div class="timer-label" id="timer-lbl">${t}s restantes</div>
+          <div class="timer-bar"><div class="timer-fill" id="timer-fill" style="width:100%"></div></div>`;
+}
+function updateTimer(t, total) {
+  const lbl = document.getElementById('timer-lbl');
+  const fill = document.getElementById('timer-fill');
+  if (lbl) lbl.textContent = `${t}s restantes`;
+  if (fill) fill.style.width = (t/total*100)+'%';
+}
+
+// SUDOKU 4×4
+function renderSudoku(game, body, size) {
+  const grid = game.config.grid;
+  const solution = game.config.solution;
+  const total = game.config.timeLimit;
+
+  body.innerHTML = timerHTML(total) + `
+    <div class="sudoku-grid g4" id="sudoku-g">
+      ${grid.flatMap((row,r) => row.map((val,c) => `
+        <input class="sudoku-cell" ${val?`value="${val}" data-given="true"`:''}
+          data-r="${r}" data-c="${c}" maxlength="1"
+          oninput="checkSudokuCell(this,${JSON.stringify(solution)},${size})"
+          onkeydown="if(this.dataset.given)return false"
+          type="text" inputmode="numeric">`
+      )).join('')}
+    </div>
+    <button class="btn-primary" style="margin-top:1rem" onclick="verifySudoku(${JSON.stringify(solution)},${size},'${game.id}',${total})">Vérifier</button>
+  `;
+  startTimer(total, t => updateTimer(t, total), () => gameOver(game.id, 0));
+}
+
+function checkSudokuCell(el, sol, size) {
+  el.value = el.value.replace(/[^1-9]/g,'');
+  const r = +el.dataset.r, c = +el.dataset.c;
+  if (el.value) {
+    el.classList.toggle('wrong', +el.value !== sol[r][c]);
+    el.classList.toggle('correct', +el.value === sol[r][c]);
+  } else { el.classList.remove('wrong','correct'); }
+}
+
+function verifySudoku(sol, size, gameId, total) {
+  const cells = document.querySelectorAll('.sudoku-cell');
+  let ok = true;
+  cells.forEach(c => {
+    const r = +c.dataset.r, col = +c.dataset.c;
+    const val = +c.value;
+    if (val !== sol[r][col]) ok = false;
+  });
+  if (ok) gameWon(gameId, Math.round(timeLeft / total * 1000 + 200));
+  else showToast('Grille incorrecte, continue !', 'error');
+}
+
+// MORSE
+function renderMorse(game, body) {
+  const total = game.config.timeLimit;
+  const morseAlpha = {A:'.-',B:'-...',C:'-.-.',D:'-..',E:'.',F:'..-.',G:'--.',H:'....',I:'..',J:'.---',K:'-.-',L:'.-..',M:'--',N:'-.',O:'---',P:'.--.',Q:'--.-',R:'.-.',S:'...',T:'-',U:'..-',V:'...-',W:'.--',X:'-..-',Y:'-.--',Z:'--..'};
+
+  body.innerHTML = timerHTML(total) + `
+    <div class="morse-msg">${game.config.message}</div>
+    <input class="answer-input" id="morse-ans" placeholder="Tape ta réponse ici..."
+      oninput="this.value=this.value.toUpperCase()"
+      onkeydown="if(event.key==='Enter')checkMorse('${game.config.answer}','${game.id}',${total})"/>
+    <p class="morse-hint">${game.config.hint}</p>
+    <div class="morse-table">
+      ${Object.entries(morseAlpha).map(([l,c])=>`<div class="morse-row"><span class="letter">${l}</span><span class="code">${c}</span></div>`).join('')}
+    </div>
+    <button class="btn-primary" style="margin-top:1.2rem" onclick="checkMorse('${game.config.answer}','${game.id}',${total})">Valider</button>
+  `;
+  startTimer(total, t => updateTimer(t, total), () => gameOver(game.id, 0));
+}
+
+function checkMorse(answer, gameId, total) {
+  const val = document.getElementById('morse-ans').value.trim().toUpperCase();
+  if (val === answer) gameWon(gameId, Math.round(timeLeft / total * 1000 + 200));
+  else showToast('Mauvaise réponse, essaie encore !', 'error');
+}
+
+// PARKING RUSH — moteur complet avec collision et drag réel
+function renderParking(game, body) {
+  const total = game.config.timeLimit;
+  const GS = 6, EXIT_ROW = 2, CELL = 52, GAP = 4, PAD = 8;
+
+  const PUZZLES = [
+    {cars:[{id:'T',row:2,col:0,length:2,dir:'H',cls:'t'},{id:'A',row:0,col:2,length:2,dir:'V',cls:'o'},{id:'B',row:3,col:0,length:2,dir:'H',cls:'o'},{id:'C',row:4,col:3,length:2,dir:'H',cls:'o'}]},
+    {cars:[{id:'T',row:2,col:0,length:2,dir:'H',cls:'t'},{id:'A',row:0,col:2,length:3,dir:'V',cls:'o'},{id:'B',row:1,col:3,length:2,dir:'H',cls:'o'},{id:'C',row:2,col:3,length:2,dir:'V',cls:'o'},{id:'D',row:4,col:1,length:3,dir:'H',cls:'o'}]},
+    {cars:[{id:'T',row:2,col:0,length:2,dir:'H',cls:'t'},{id:'A',row:0,col:2,length:2,dir:'V',cls:'o'},{id:'B',row:2,col:2,length:2,dir:'V',cls:'o'},{id:'C',row:1,col:3,length:2,dir:'H',cls:'o'},{id:'D',row:3,col:4,length:2,dir:'V',cls:'o'},{id:'E',row:4,col:0,length:3,dir:'H',cls:'o'}]},
+  ];
+
+  let prCars = PUZZLES[Math.floor(Math.random()*PUZZLES.length)].cars.map(c=>({...c}));
+  let prMoves = 0, prWon = false;
+
+  function cp(i){ return PAD + i*(CELL+GAP); }
+
+  function occupies(car){
+    const cells=[];
+    for(let i=0;i<car.length;i++) cells.push(car.dir==='H'?{r:car.row,c:car.col+i}:{r:car.row+i,c:car.col});
+    return cells;
+  }
+
+  function isFree(car,np){
+    const moved={...car,...np}, mc=occupies(moved);
+    for(const {r,c} of mc) if(r<0||r>=GS||c<0||c>=GS) return false;
+    for(const other of prCars){
+      if(other.id===car.id) continue;
+      for(const m of mc) for(const o of occupies(other)) if(m.r===o.r&&m.c===o.c) return false;
+    }
+    return true;
+  }
+
+  function buildBoard(){
+    const bp = GS*(CELL+GAP)-GAP+2*PAD;
+    body.innerHTML = timerHTML(total) + `
+      <p style="font-size:.72rem;color:var(--muted);margin-bottom:.8rem;text-align:center">
+        Fais sortir la voiture <span style="color:var(--hard)">rouge 🚗</span> par la droite → (ligne 3)
+      </p>
+      <div style="display:flex;align-items:center;justify-content:center;gap:4px">
+        <div id="pr-board" style="position:relative;width:${bp}px;height:${bp}px;background:#1c1c26;border-radius:10px;border:1px solid #2a2a38;">
+          <div style="position:absolute;left:${PAD}px;top:${cp(EXIT_ROW)}px;width:${GS*(CELL+GAP)-GAP}px;height:${CELL}px;background:rgba(34,201,135,.04);border-radius:5px;border:1px dashed rgba(34,201,135,.18);pointer-events:none"></div>
+          ${Array(GS*GS).fill(0).map((_,i)=>{
+            const r=Math.floor(i/GS),c=i%GS;
+            return `<div style="position:absolute;left:${cp(c)}px;top:${cp(r)}px;width:${CELL}px;height:${CELL}px;background:#0a0a0f;border-radius:5px"></div>`;
+          }).join('')}
+        </div>
+        <div style="color:#22c987;font-size:1.1rem;padding-left:4px">→<br><span style="font-size:.5rem;color:#22c987;writing-mode:vertical-rl;text-transform:uppercase;letter-spacing:.08em">Sortie</span></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:.8rem">
+        <span id="pr-moves" style="font-size:.72rem;color:var(--muted)">0 déplacements</span>
+        <button class="btn-sec" style="padding:.35rem .8rem;font-size:.72rem" onclick="prReset()">↺ Nouveau puzzle</button>
+      </div>`;
+    renderPrCars();
+  }
+
+  function renderPrCars(){
+    const board=document.getElementById('pr-board'); if(!board) return;
+    board.querySelectorAll('.pr-car').forEach(e=>e.remove());
+    prCars.forEach(car=>{
+      const w=car.dir==='H'?car.length*(CELL+GAP)-GAP:CELL;
+      const h=car.dir==='V'?car.length*(CELL+GAP)-GAP:CELL;
+      const el=document.createElement('div');
+      el.className='pr-car'; el.dataset.id=car.id;
+      const isT=car.cls==='t';
+      el.style.cssText=`position:absolute;left:${cp(car.col)}px;top:${cp(car.row)}px;width:${w}px;height:${h}px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:grab;user-select:none;touch-action:none;z-index:10;font-size:.6rem;font-weight:600;transition:box-shadow .15s;${isT?'background:rgba(232,68,90,.22);border:2px solid #e8445a;color:#e8445a;box-shadow:0 0 12px rgba(232,68,90,.2)':'background:rgba(124,106,247,.18);border:2px solid rgba(124,106,247,.55);color:#7c6af7'}`;
+      el.innerHTML=isT?'<span style="font-size:1rem">🚗</span>':car.id;
+      attachPrDrag(el,car);
+      board.appendChild(el);
+    });
+  }
+
+  function attachPrDrag(el,carRef){
+    let sx,sy,sc,sr;
+    function down(e){ if(prWon)return; e.preventDefault(); const pt=e.touches?e.touches[0]:e; sx=pt.clientX;sy=pt.clientY;sc=carRef.col;sr=carRef.row; el.style.cursor='grabbing';el.style.zIndex=20; document.addEventListener('mousemove',move); document.addEventListener('mouseup',up); document.addEventListener('touchmove',move,{passive:false}); document.addEventListener('touchend',up); }
+    function move(e){ e.preventDefault(); const pt=e.touches?e.touches[0]:e; const step=CELL+GAP; if(carRef.dir==='H'){const nc=Math.max(0,Math.min(GS-carRef.length,sc+Math.round((pt.clientX-sx)/step))); if(isFree(carRef,{col:nc})){carRef.col=nc;el.style.left=cp(nc)+'px';}}else{const nr=Math.max(0,Math.min(GS-carRef.length,sr+Math.round((pt.clientY-sy)/step))); if(isFree(carRef,{row:nr})){carRef.row=nr;el.style.top=cp(nr)+'px';}}}
+    function up(){ el.style.cursor='grab';el.style.zIndex=10; document.removeEventListener('mousemove',move); document.removeEventListener('mouseup',up); document.removeEventListener('touchmove',move); document.removeEventListener('touchend',up); const fp=carRef.dir==='H'?carRef.col:carRef.row,sp2=carRef.dir==='H'?sc:sr; if(fp!==sp2){prMoves++;const m=document.getElementById('pr-moves');if(m)m.textContent=`${prMoves} déplacement${prMoves>1?'s':''}`;checkPrWin();}}
+    el.addEventListener('mousedown',down); el.addEventListener('touchstart',down,{passive:false});
+  }
+
+  function checkPrWin(){
+    const t=prCars.find(c=>c.id==='T'); if(!t) return;
+    if(t.row===EXIT_ROW&&t.col>=GS-t.length){
+      prWon=true; clearInterval(timerInterval);
+      const el=document.querySelector('.pr-car[data-id="T"]');
+      if(el){el.style.transition='left .4s ease-in,opacity .3s';el.style.left=(cp(GS)+30)+'px';el.style.opacity='0';}
+      setTimeout(()=>gameWon(game.id,Math.max(100,Math.round(timeLeft/total*800)+Math.max(0,20-prMoves)*15)),450);
+    }
+  }
+
+  window.prReset=()=>{
+    const P2=[
+      {cars:[{id:'T',row:2,col:0,length:2,dir:'H',cls:'t'},{id:'A',row:0,col:2,length:2,dir:'V',cls:'o'},{id:'B',row:3,col:0,length:2,dir:'H',cls:'o'},{id:'C',row:4,col:3,length:2,dir:'H',cls:'o'}]},
+      {cars:[{id:'T',row:2,col:0,length:2,dir:'H',cls:'t'},{id:'A',row:0,col:2,length:3,dir:'V',cls:'o'},{id:'B',row:1,col:3,length:2,dir:'H',cls:'o'},{id:'C',row:2,col:3,length:2,dir:'V',cls:'o'},{id:'D',row:4,col:1,length:3,dir:'H',cls:'o'}]},
+      {cars:[{id:'T',row:2,col:0,length:2,dir:'H',cls:'t'},{id:'A',row:0,col:2,length:2,dir:'V',cls:'o'},{id:'B',row:2,col:2,length:2,dir:'V',cls:'o'},{id:'C',row:1,col:3,length:2,dir:'H',cls:'o'},{id:'D',row:3,col:4,length:2,dir:'V',cls:'o'},{id:'E',row:4,col:0,length:3,dir:'H',cls:'o'}]},
+    ];
+    prCars=P2[Math.floor(Math.random()*P2.length)].cars.map(c=>({...c})); prMoves=0; prWon=false;
+    renderPrCars(); const m=document.getElementById('pr-moves');if(m)m.textContent='0 déplacements';
+  };
+
+  buildBoard();
+  startTimer(total, t => updateTimer(t, total), () => gameOver(game.id, 0));
+}
+
+// CAESAR CIPHER
+function renderCaesar(game, body) {
+  const total = game.config.timeLimit;
+  body.innerHTML = timerHTML(total) + `
+    <div class="morse-msg" style="font-size:1.2rem;letter-spacing:.1em">${game.config.encryptedMessage}</div>
+    <p style="font-size:.75rem;color:var(--muted);text-align:center;margin-bottom:1.2rem">${game.config.hint}</p>
+    <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem">
+      <label style="font-size:.72rem;color:var(--muted)">Décalage :</label>
+      <input type="range" min="1" max="25" value="3" id="shift-range" style="flex:1"
+        oninput="document.getElementById('shift-val').textContent=this.value;previewCaesar('${game.config.encryptedMessage}',+this.value)"/>
+      <span id="shift-val" style="font-size:.85rem;font-weight:600;min-width:20px;text-align:right">3</span>
+    </div>
+    <div id="caesar-preview" class="answer-input" style="pointer-events:none;text-align:center;letter-spacing:.15em;min-height:48px;display:flex;align-items:center;justify-content:center">
+      ${decodeCaesar(game.config.encryptedMessage, 3)}
+    </div>
+    <button class="btn-primary" style="margin-top:1.2rem"
+      onclick="checkCaesar('${game.config.answer}','${game.id}',${total})">Valider</button>
+  `;
+  startTimer(total, t => updateTimer(t, total), () => gameOver(game.id, 0));
+}
+
+function decodeCaesar(msg, shift) {
+  return msg.split('').map(c => {
+    if (c >= 'A' && c <= 'Z') return String.fromCharCode((c.charCodeAt(0)-65-shift+26)%26+65);
+    return c;
+  }).join('');
+}
+
+function previewCaesar(msg, shift) {
+  const el = document.getElementById('caesar-preview');
+  if (el) el.textContent = decodeCaesar(msg, shift);
+}
+
+function checkCaesar(answer, gameId, total) {
+  const shift = +document.getElementById('shift-range').value;
+  const msg = document.getElementById('caesar-preview').textContent.trim();
+  if (msg === answer) gameWon(gameId, Math.round(timeLeft / total * 1000 + 200));
+  else showToast('Mauvais décalage, essaie encore !', 'error');
+}
+
+// GENERIC fallback
+function renderGeneric(game, body) {
+  const total = game.config.timeLimit;
+  body.innerHTML = timerHTML(total) + `
+    <div style="text-align:center;padding:2rem 0">
+      <div style="font-size:3rem;margin-bottom:1rem">${GAME_ICONS[game.type]||'?'}</div>
+      <p style="color:var(--muted);font-size:.82rem;margin-bottom:1.5rem">
+        Ce jeu est disponible dans la version complète de l'application.
+      </p>
+      <button class="btn-primary" onclick="gameWon('${game.id}', 500)">Simuler une victoire ↗</button>
+    </div>
+  `;
+  startTimer(total, t => updateTimer(t, total), () => gameOver(game.id, 0));
+}
+
+// ── GAME RESULT ───────────────────────────────────────────────────
+function gameWon(gameId, score) {
+  clearInterval(timerInterval);
+  completedGames.add(gameId);
+  sessionScore += score;
+  const body = document.getElementById('modal-body');
+  body.innerHTML = `
+    <div class="result-box">
+      <div class="result-icon">🎉</div>
+      <h3 class="result-title">Bravo !</h3>
+      <p class="result-sub">Tu as résolu ce puzzle</p>
+      <div class="result-score">+${score} pts</div>
+      ${completedGames.size < currentSession.length
+        ? `<button class="btn-sec" onclick="closeModal();renderSessionGrid()">Jeu suivant →</button>`
+        : `<button class="btn-primary" onclick="allDone()">🏆 Session terminée !</button>`}
+    </div>`;
+  submitResult(gameId, score, true);
+}
+
+function gameOver(gameId, score) {
+  const body = document.getElementById('modal-body');
+  body.innerHTML = `
+    <div class="result-box">
+      <div class="result-icon">⏰</div>
+      <h3 class="result-title">Temps écoulé</h3>
+      <p class="result-sub">Tu y étais presque !</p>
+      <div class="result-score" style="color:var(--hard)">0 pts</div>
+      <button class="btn-sec" onclick="closeModal();renderSessionGrid()">Continuer</button>
+    </div>`;
+  submitResult(gameId, 0, false);
+}
+
+function allDone() {
+  closeModal();
+  const body = document.getElementById('modal-body');
+  document.getElementById('modal-title').textContent = 'Session terminée !';
+  document.getElementById('modal-overlay').classList.add('open');
+  document.getElementById('modal-body').innerHTML = `
+    <div class="result-box">
+      <div class="result-icon">🏆</div>
+      <h3 class="result-title">Session complète !</h3>
+      <p class="result-sub">Tu as terminé les 3 jeux</p>
+      <div class="result-score">${sessionScore} pts au total</div>
+      <div style="display:flex;gap:.8rem;justify-content:center;flex-wrap:wrap">
+        <button class="btn-primary" onclick="closeModal();startSession(currentDiff)">Rejouer</button>
+        <button class="btn-sec" onclick="closeModal();showSection('leaderboard')">Voir le classement</button>
+      </div>
+    </div>`;
+}
+
+// ── API CALLS ─────────────────────────────────────────────────────
+async function submitResult(gameId, score, completed) {
+  try {
+    await fetch(`${API}/api/users/results`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ username, gameId, difficulty: currentDiff, score, durationSeconds: 0, completed })
+    });
+  } catch {}
+}
+
+async function loadLeaderboard() {
+  const el = document.getElementById('lb-list');
+  el.innerHTML = '<div class="loading"><div class="spinner"></div> Chargement...</div>';
+  try {
+    const res = await fetch(`${API}/api/leaderboard/global?limit=10`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await res.json();
+    if (!data.length) { el.innerHTML = '<p style="color:var(--muted);font-size:.8rem">Aucun score pour l\'instant — joue ta première partie !</p>'; return; }
+    el.innerHTML = data.map((e,i) => `
+      <div class="lb-row ${e.username===username?'me':''}">
+        <span class="lb-rank ${i<3?'top':''}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</span>
+        <span class="lb-name">${e.username}${e.username===username?' (toi)':''}</span>
+        <span class="lb-score">${e.score}</span>
+      </div>`).join('');
+  } catch {
+    el.innerHTML = '<p style="color:var(--muted);font-size:.8rem">Aucun score enregistré — joue ta première partie !</p>';
+  }
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast show ${type}`;
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ── INIT ──────────────────────────────────────────────────────────
+if (token && username) afterLogin();
+</script>
+</body>
+</html>

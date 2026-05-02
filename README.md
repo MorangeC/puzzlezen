@@ -1,6 +1,6 @@
-# 🧩 PuzzleZen
+# PuzzleZen
 
-> Plateforme de jeux de réflexion construite en architecture microservices Java — projet portfolio.
+> Plateforme de jeux de réflexion construite en architecture microservices Java - projet portfolio.
 
 ![Java](https://img.shields.io/badge/Java-21-orange?style=flat-square&logo=openjdk)
 ![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.2-brightgreen?style=flat-square&logo=springboot)
@@ -10,11 +10,11 @@
 
 ---
 
-## 🎯 Concept
+## Concept
 
 PuzzleZen propose **3 jeux sélectionnés aléatoirement** parmi une banque, pour chaque niveau de difficulté. Le joueur s'authentifie, choisit son niveau, résout les puzzles et se retrouve au classement en temps réel.
 
-## 🏗️ Architecture microservices
+## Architecture microservices
 
 ```
                         ┌─────────────────────┐
@@ -44,7 +44,7 @@ PuzzleZen propose **3 jeux sélectionnés aléatoirement** parmi une banque, pou
                     └───────────────────┘
 ```
 
-## 🎮 Jeux disponibles
+## Jeux disponibles
 
 | Niveau | Jeux |
 |--------|------|
@@ -52,7 +52,7 @@ PuzzleZen propose **3 jeux sélectionnés aléatoirement** parmi une banque, pou
 | 🟡 **Intermédiaire** | Parking Rush · Labyrinthe 10×10 · Recréer l'image |
 | 🔴 **Difficile** | Sudoku 9×9 · Chiffrement César · Tour de Hanoï (5 disques) |
 
-## 🛠️ Stack technique
+## Stack technique
 
 | Couche | Technologie |
 |--------|------------|
@@ -69,7 +69,7 @@ PuzzleZen propose **3 jeux sélectionnés aléatoirement** parmi une banque, pou
 | Orchestration | Kubernetes + Helm |
 | CI/CD | GitHub Actions |
 
-## 🚀 Démarrage rapide
+## Démarrage rapide
 
 ```bash
 git clone https://github.com/ton-user/puzzlezen.git
@@ -86,7 +86,7 @@ curl "http://localhost:8083/api/games/session?difficulty=EASY"
 
 Ouvre ensuite `frontend/index.html` dans ton navigateur.
 
-## 🔄 Flux événements Kafka
+## Flux événements Kafka
 
 ```
 auth-service  ──► [user-registered]  ──► user-service (crée le profil)
@@ -94,14 +94,14 @@ game-service  ──► [game-completed]   ──► leaderboard-service (score)
                                      └─► notification-service (WS broadcast)
 ```
 
-## ✅ Points techniques notables
+## Points techniques notables
 
-- **Database per service** — chaque microservice a sa propre base (pattern DDD)
-- **Event-driven** — communication asynchrone via Kafka
-- **JWT stateless** — authentification sans session serveur
-- **Redis Sorted Sets** — classement en O(log n)
-- **Multi-stage Docker builds** — images légères (JRE alpine)
-- **Seed automatique** — banque de jeux MongoDB peuplée au démarrage
+- **Database per service** - chaque microservice a sa propre base (pattern DDD)
+- **Event-driven** - communication asynchrone via Kafka
+- **JWT stateless** - authentification sans session serveur
+- **Redis Sorted Sets** - classement en O(log n)
+- **Multi-stage Docker builds** - images légères (JRE alpine)
+- **Seed automatique** - banque de jeux MongoDB peuplée au démarrage
 
 ---
 *Architecture microservices Java · Spring Boot · Docker · Kubernetes*

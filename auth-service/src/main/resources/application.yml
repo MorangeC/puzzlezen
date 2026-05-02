@@ -21,6 +21,17 @@ jwt:
   secret: ${JWT_SECRET:changeme_please_use_a_256_bit_key_in_prod}
   expiration: ${JWT_EXPIRATION:86400000}
 
+springdoc:
+  swagger-ui:
+    path: /swagger-ui
+    operationsSorter: method
+    tagsSorter: alpha
+    doc-expansion: none
+    display-request-duration: true
+  api-docs:
+    path: /api-docs
+  show-actuator: false
+
 management:
   endpoints:
     web:

@@ -27,3 +27,12 @@ management:
 logging:
   level:
     com.puzzlezen: DEBUG
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui
+    operationsSorter: method
+    doc-expansion: none
+    display-request-duration: true
+  api-docs:
+    path: /api-docs

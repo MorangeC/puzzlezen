@@ -1,6 +1,11 @@
 package com.puzzlezen.auth.controller;
 
 import com.puzzlezen.auth.service.AuthService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -12,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
+@Tag(name = "Authentication", description = "Inscription et connexion — retourne un token JWT")
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -19,7 +25,12 @@ public class AuthController {
 
     private final AuthService authService;
 
-    /** POST /api/auth/register */
+    @Operation(summary = "Créer un compte", description = "Retourne un JWT token valide 24h")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Compte créé, token retourné"),
+        @ApiResponse(responseCode = "400", description = "Username ou email déjà utilisé")
+    })
+    @SecurityRequirements // public — pas besoin de JWT
     @PostMapping("/register")
     public ResponseEntity<Map<String, String>> register(@Valid @RequestBody RegisterRequest req) {
         return ResponseEntity.ok(
@@ -27,7 +38,12 @@ public class AuthController {
         );
     }
 
-    /** POST /api/auth/login */
+    @Operation(summary = "Se connecter", description = "Retourne un JWT token valide 24h")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Connexion réussie, token retourné"),
+        @ApiResponse(responseCode = "400", description = "Identifiants incorrects")
+    })
+    @SecurityRequirements // public
     @PostMapping("/login")
     public ResponseEntity<Map<String, String>> login(@Valid @RequestBody LoginRequest req) {
         return ResponseEntity.ok(

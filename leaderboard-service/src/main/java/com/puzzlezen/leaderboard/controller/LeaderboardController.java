@@ -2,12 +2,16 @@ package com.puzzlezen.leaderboard.controller;
 
 import com.puzzlezen.leaderboard.service.LeaderboardService;
 import com.puzzlezen.leaderboard.service.LeaderboardService.LeaderboardEntry;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Tag(name = "Leaderboard", description = "Classements temps réel via Redis Sorted Sets — O(log n)")
 @RestController
 @RequestMapping("/api/leaderboard")
 @RequiredArgsConstructor
@@ -15,14 +19,14 @@ public class LeaderboardController {
 
     private final LeaderboardService leaderboardService;
 
-    /** GET /api/leaderboard/global?limit=10 */
+    @Operation(summary = "Top global", description = "Classement toutes difficultés confondues")
     @GetMapping("/global")
     public ResponseEntity<List<LeaderboardEntry>> global(
             @RequestParam(defaultValue = "10") int limit) {
         return ResponseEntity.ok(leaderboardService.getGlobalTop(limit));
     }
 
-    /** GET /api/leaderboard/{difficulty}?limit=10 */
+    @Operation(summary = "Top par niveau", description = "Classement pour EASY, MEDIUM ou HARD")
     @GetMapping("/{difficulty}")
     public ResponseEntity<List<LeaderboardEntry>> byDifficulty(
             @PathVariable String difficulty,
@@ -30,7 +34,7 @@ public class LeaderboardController {
         return ResponseEntity.ok(leaderboardService.getTop(difficulty.toUpperCase(), limit));
     }
 
-    /** GET /api/leaderboard/{difficulty}/rank/{username} */
+    @Operation(summary = "Rang d'un joueur", description = "Position 1-based d'un joueur dans un classement donné")
     @GetMapping("/{difficulty}/rank/{username}")
     public ResponseEntity<?> getRank(
             @PathVariable String difficulty,

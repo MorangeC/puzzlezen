@@ -1,0 +1,160 @@
+services:
+
+  # ─── INFRASTRUCTURE ────────────────────────────────────────────
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: puzzlezen-postgres
+    environment:
+      POSTGRES_USER: puzzlezen
+      POSTGRES_PASSWORD: puzzlezen_secret
+      POSTGRES_MULTIPLE_DATABASES: auth_db,user_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-multi-db.sh:/docker-entrypoint-initdb.d/init-multi-db.sh
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U puzzlezen"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mongodb:
+    image: mongo:7
+    container_name: puzzlezen-mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: puzzlezen
+      MONGO_INITDB_ROOT_PASSWORD: puzzlezen_secret
+      MONGO_INITDB_DATABASE: game_db
+    volumes:
+      - mongo_data:/data/db
+    ports:
+      - "27017:27017"
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: puzzlezen-redis
+    command: redis-server --requirepass puzzlezen_secret
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "puzzlezen_secret", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: puzzlezen-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: puzzlezen-kafka
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    ports:
+      - "29092:29092"
+
+  # ─── MICROSERVICES ─────────────────────────────────────────────
+
+  api-gateway:
+    build: ./api-gateway
+    container_name: puzzlezen-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      AUTH_SERVICE_URL: http://auth-service:8081
+      USER_SERVICE_URL: http://user-service:8082
+      GAME_SERVICE_URL: http://game-service:8083
+      LEADERBOARD_SERVICE_URL: http://leaderboard-service:8084
+      NOTIFICATION_SERVICE_URL: http://notification-service:8085
+    depends_on:
+      - auth-service
+      - game-service
+
+  auth-service:
+    build: ./auth-service
+    container_name: puzzlezen-auth
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/auth_db
+      SPRING_DATASOURCE_USERNAME: puzzlezen
+      SPRING_DATASOURCE_PASSWORD: puzzlezen_secret
+      JWT_SECRET: ${JWT_SECRET:-changeme_in_production_use_256_bit_key}
+      JWT_EXPIRATION: 86400000
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  user-service:
+    build: ./user-service
+    container_name: puzzlezen-user
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/user_db
+      SPRING_DATASOURCE_USERNAME: puzzlezen
+      SPRING_DATASOURCE_PASSWORD: puzzlezen_secret
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  game-service:
+    build: ./game-service
+    container_name: puzzlezen-game
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_DATA_MONGODB_URI: mongodb://puzzlezen:puzzlezen_secret@mongodb:27017/game_db?authSource=admin
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+  leaderboard-service:
+    build: ./leaderboard-service
+    container_name: puzzlezen-leaderboard
+    ports:
+      - "8084:8084"
+    environment:
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_DATA_REDIS_PASSWORD: puzzlezen_secret
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  notification-service:
+    build: ./notification-service
+    container_name: puzzlezen-notification
+    ports:
+      - "8085:8085"
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+
+volumes:
+  postgres_data:
+  mongo_data:
+  redis_data:

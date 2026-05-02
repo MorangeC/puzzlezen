@@ -5,6 +5,7 @@ import com.puzzlezen.leaderboard.service.LeaderboardService.LeaderboardEntry;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -42,5 +43,24 @@ public class LeaderboardController {
         Long rank = leaderboardService.getRank(username, difficulty.toUpperCase());
         if (rank == null) return ResponseEntity.notFound().build();
         return ResponseEntity.ok(java.util.Map.of("username", username, "rank", rank));
+    }
+    /** POST /api/leaderboard/submit — appelé directement par le frontend */
+    @Operation(summary = "Soumettre un score", description = "Enregistre un score dans Redis — utilisé directement par le frontend (sinon via Kafka en prod)")
+    @PostMapping("/submit")
+    public ResponseEntity<?> submitScore(@RequestBody ScoreRequest req) {
+        leaderboardService.submitScore(req.getUsername(), req.getDifficulty(), req.getScore());
+        return ResponseEntity.ok(java.util.Map.of(
+            "message", "Score enregistré",
+            "username", req.getUsername(),
+            "difficulty", req.getDifficulty(),
+            "score", req.getScore()
+        ));
+    }
+
+    @Data
+    public static class ScoreRequest {
+        private String username;
+        private String difficulty;
+        private int score;
     }
 }

@@ -32,6 +32,8 @@ spring:
           uri: ${LEADERBOARD_SERVICE_URL:http://localhost:8084}
           predicates:
             - Path=/api/leaderboard/**
+          filters:
+            - AddResponseHeader=X-Service, leaderboard-service
 
         - id: notification-service
           uri: ${NOTIFICATION_SERVICE_URL:http://localhost:8085}
@@ -42,4 +44,10 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,gateway
+        include: health,gateway,prometheus,metrics
+  endpoint:
+    prometheus:
+      enabled: true
+  metrics:
+    tags:
+      application: api-gateway

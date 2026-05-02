@@ -1,0 +1,277 @@
+{
+  "title": "PuzzleZen — Microservices Overview",
+  "uid": "puzzlezen-overview",
+  "version": 1,
+  "schemaVersion": 38,
+  "refresh": "10s",
+  "time": { "from": "now-30m", "to": "now" },
+  "tags": ["puzzlezen", "microservices", "spring-boot"],
+  "panels": [
+
+    {
+      "id": 1, "type": "row",
+      "title": "🟢 Services Health",
+      "gridPos": { "x": 0, "y": 0, "w": 24, "h": 1 },
+      "collapsed": false
+    },
+
+    {
+      "id": 2, "type": "stat",
+      "title": "Services UP",
+      "gridPos": { "x": 0, "y": 1, "w": 4, "h": 4 },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": { "calcs": ["lastNotNull"] }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [
+            { "color": "red", "value": 0 },
+            { "color": "orange", "value": 3 },
+            { "color": "green", "value": 5 }
+          ]},
+          "unit": "short"
+        }
+      },
+      "targets": [{
+        "expr": "count(up{job=~\"auth-service|game-service|user-service|leaderboard-service|notification-service\"} == 1)",
+        "legendFormat": "Services UP"
+      }],
+      "datasource": "Prometheus"
+    },
+
+    {
+      "id": 3, "type": "stat",
+      "title": "Total Requests / min",
+      "gridPos": { "x": 4, "y": 1, "w": 4, "h": 4 },
+      "options": { "colorMode": "background", "graphMode": "area" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [
+            { "color": "blue", "value": 0 }
+          ]},
+          "unit": "reqpm"
+        }
+      },
+      "targets": [{
+        "expr": "sum(rate(http_server_requests_seconds_count[1m])) * 60",
+        "legendFormat": "req/min"
+      }],
+      "datasource": "Prometheus"
+    },
+
+    {
+      "id": 4, "type": "stat",
+      "title": "Error Rate",
+      "gridPos": { "x": 8, "y": 1, "w": 4, "h": 4 },
+      "options": { "colorMode": "background", "graphMode": "none" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [
+            { "color": "green", "value": 0 },
+            { "color": "orange", "value": 0.01 },
+            { "color": "red", "value": 0.05 }
+          ]},
+          "unit": "percentunit"
+        }
+      },
+      "targets": [{
+        "expr": "sum(rate(http_server_requests_seconds_count{status=~\"5..\"}[5m])) / sum(rate(http_server_requests_seconds_count[5m]))",
+        "legendFormat": "Error %"
+      }],
+      "datasource": "Prometheus"
+    },
+
+    {
+      "id": 5, "type": "stat",
+      "title": "Avg Response Time",
+      "gridPos": { "x": 12, "y": 1, "w": 4, "h": 4 },
+      "options": { "colorMode": "background", "graphMode": "none" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [
+            { "color": "green", "value": 0 },
+            { "color": "orange", "value": 0.3 },
+            { "color": "red", "value": 1 }
+          ]},
+          "unit": "s"
+        }
+      },
+      "targets": [{
+        "expr": "sum(rate(http_server_requests_seconds_sum[5m])) / sum(rate(http_server_requests_seconds_count[5m]))",
+        "legendFormat": "avg latency"
+      }],
+      "datasource": "Prometheus"
+    },
+
+    {
+      "id": 6, "type": "stat",
+      "title": "JVM Memory Used",
+      "gridPos": { "x": 16, "y": 1, "w": 4, "h": 4 },
+      "options": { "colorMode": "value", "graphMode": "area" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [
+            { "color": "green", "value": 0 },
+            { "color": "orange", "value": 400000000 },
+            { "color": "red", "value": 700000000 }
+          ]},
+          "unit": "bytes"
+        }
+      },
+      "targets": [{
+        "expr": "sum(jvm_memory_used_bytes{area=\"heap\"})",
+        "legendFormat": "heap used"
+      }],
+      "datasource": "Prometheus"
+    },
+
+    {
+      "id": 7, "type": "row",
+      "title": "📈 HTTP Traffic",
+      "gridPos": { "x": 0, "y": 5, "w": 24, "h": 1 },
+      "collapsed": false
+    },
+
+    {
+      "id": 8, "type": "timeseries",
+      "title": "Requests per second — par service",
+      "gridPos": { "x": 0, "y": 6, "w": 12, "h": 8 },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "fieldConfig": {
+        "defaults": { "unit": "reqps", "custom": { "lineWidth": 2, "fillOpacity": 10 } }
+      },
+      "targets": [
+        { "expr": "rate(http_server_requests_seconds_count{application=\"auth-service\"}[1m])", "legendFormat": "auth-service" },
+        { "expr": "rate(http_server_requests_seconds_count{application=\"game-service\"}[1m])", "legendFormat": "game-service" },
+        { "expr": "rate(http_server_requests_seconds_count{application=\"user-service\"}[1m])", "legendFormat": "user-service" },
+        { "expr": "rate(http_server_requests_seconds_count{application=\"leaderboard-service\"}[1m])", "legendFormat": "leaderboard-service" },
+        { "expr": "rate(http_server_requests_seconds_count{application=\"notification-service\"}[1m])", "legendFormat": "notification-service" }
+      ],
+      "datasource": "Prometheus"
+    },
+
+    {
+      "id": 9, "type": "timeseries",
+      "title": "Latence p95 — par service (ms)",
+      "gridPos": { "x": 12, "y": 6, "w": 12, "h": 8 },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "fieldConfig": {
+        "defaults": { "unit": "ms", "custom": { "lineWidth": 2, "fillOpacity": 5 } }
+      },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, rate(http_server_requests_seconds_bucket{application=\"auth-service\"}[5m])) * 1000", "legendFormat": "auth p95" },
+        { "expr": "histogram_quantile(0.95, rate(http_server_requests_seconds_bucket{application=\"game-service\"}[5m])) * 1000", "legendFormat": "game p95" },
+        { "expr": "histogram_quantile(0.95, rate(http_server_requests_seconds_bucket{application=\"user-service\"}[5m])) * 1000", "legendFormat": "user p95" },
+        { "expr": "histogram_quantile(0.95, rate(http_server_requests_seconds_bucket{application=\"leaderboard-service\"}[5m])) * 1000", "legendFormat": "leaderboard p95" }
+      ],
+      "datasource": "Prometheus"
+    },
+
+    {
+      "id": 10, "type": "row",
+      "title": "☕ JVM & Ressources",
+      "gridPos": { "x": 0, "y": 14, "w": 24, "h": 1 },
+      "collapsed": false
+    },
+
+    {
+      "id": 11, "type": "timeseries",
+      "title": "JVM Heap — par service",
+      "gridPos": { "x": 0, "y": 15, "w": 8, "h": 7 },
+      "fieldConfig": {
+        "defaults": { "unit": "bytes", "custom": { "lineWidth": 2, "fillOpacity": 15 } }
+      },
+      "targets": [
+        { "expr": "jvm_memory_used_bytes{area=\"heap\",application=\"auth-service\"}", "legendFormat": "auth heap" },
+        { "expr": "jvm_memory_used_bytes{area=\"heap\",application=\"game-service\"}", "legendFormat": "game heap" },
+        { "expr": "jvm_memory_used_bytes{area=\"heap\",application=\"user-service\"}", "legendFormat": "user heap" },
+        { "expr": "jvm_memory_used_bytes{area=\"heap\",application=\"leaderboard-service\"}", "legendFormat": "leaderboard heap" }
+      ],
+      "datasource": "Prometheus"
+    },
+
+    {
+      "id": 12, "type": "timeseries",
+      "title": "CPU Usage — par service",
+      "gridPos": { "x": 8, "y": 15, "w": 8, "h": 7 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0, "max": 1,
+          "custom": { "lineWidth": 2 }
+        }
+      },
+      "targets": [
+        { "expr": "process_cpu_usage{application=\"auth-service\"}", "legendFormat": "auth" },
+        { "expr": "process_cpu_usage{application=\"game-service\"}", "legendFormat": "game" },
+        { "expr": "process_cpu_usage{application=\"user-service\"}", "legendFormat": "user" },
+        { "expr": "process_cpu_usage{application=\"leaderboard-service\"}", "legendFormat": "leaderboard" }
+      ],
+      "datasource": "Prometheus"
+    },
+
+    {
+      "id": 13, "type": "timeseries",
+      "title": "JVM Threads actifs",
+      "gridPos": { "x": 16, "y": 15, "w": 8, "h": 7 },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "custom": { "lineWidth": 2 } }
+      },
+      "targets": [
+        { "expr": "jvm_threads_live_threads{application=\"auth-service\"}", "legendFormat": "auth" },
+        { "expr": "jvm_threads_live_threads{application=\"game-service\"}", "legendFormat": "game" },
+        { "expr": "jvm_threads_live_threads{application=\"user-service\"}", "legendFormat": "user" }
+      ],
+      "datasource": "Prometheus"
+    },
+
+    {
+      "id": 14, "type": "row",
+      "title": "🎮 Métriques métier PuzzleZen",
+      "gridPos": { "x": 0, "y": 22, "w": 24, "h": 1 },
+      "collapsed": false
+    },
+
+    {
+      "id": 15, "type": "timeseries",
+      "title": "Sessions de jeu démarrées",
+      "gridPos": { "x": 0, "y": 23, "w": 12, "h": 7 },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "custom": { "lineWidth": 2, "fillOpacity": 20 } }
+      },
+      "targets": [{
+        "expr": "increase(http_server_requests_seconds_count{application=\"game-service\",uri=\"/api/games/session\",status=\"200\"}[5m])",
+        "legendFormat": "Sessions /5min"
+      }],
+      "datasource": "Prometheus"
+    },
+
+    {
+      "id": 16, "type": "timeseries",
+      "title": "Requêtes Leaderboard (classements)",
+      "gridPos": { "x": 12, "y": 23, "w": 12, "h": 7 },
+      "fieldConfig": {
+        "defaults": { "unit": "reqps", "custom": { "lineWidth": 2 } }
+      },
+      "targets": [{
+        "expr": "rate(http_server_requests_seconds_count{application=\"leaderboard-service\",status=\"200\"}[1m])",
+        "legendFormat": "leaderboard req/s"
+      }],
+      "datasource": "Prometheus"
+    }
+
+  ]
+}

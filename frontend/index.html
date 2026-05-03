@@ -116,7 +116,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:1.5
 .modal-body{padding:1.5rem}
 .timer-bar{background:var(--bg3);border-radius:4px;height:4px;margin-bottom:1.5rem;overflow:hidden}
 .timer-fill{height:100%;background:var(--accent);border-radius:4px;transition:width 1s linear}
-.timer-label{font-size:.72rem;color:var(--muted);margin-bottom.5rem;text-align:right;margin-bottom:.5rem}
+.timer-label{font-size:.72rem;color:var(--muted);margin-bottom:0.5rem;text-align:right}
 
 /* SUDOKU */
 .sudoku-grid{display:grid;gap:4px;margin:1rem auto;width:fit-content}
@@ -551,24 +551,94 @@ function updateTimer(t, total) {
 
 // SUDOKU 4×4
 function renderSudoku(game, body, size) {
-  const grid = game.config.grid;
-  const solution = game.config.solution;
   const total = game.config.timeLimit;
 
+  // Generate a fresh valid 4x4 sudoku each time
+  function generate4x4() {
+    // Base patterns rotated/shuffled for variety
+    const bases = [
+      [[1,2,3,4],[3,4,1,2],[2,1,4,3],[4,3,2,1]],
+      [[1,3,2,4],[2,4,1,3],[3,1,4,2],[4,2,3,1]],
+      [[2,1,4,3],[4,3,2,1],[1,2,3,4],[3,4,1,2]],
+      [[3,4,1,2],[1,2,3,4],[4,3,2,1],[2,1,4,3]],
+      [[4,1,3,2],[3,2,4,1],[1,4,2,3],[2,3,1,4]],
+      [[2,3,4,1],[4,1,2,3],[3,4,1,2],[1,2,3,4]],
+    ];
+    // Pick a random base and shuffle rows within each 2x2 band
+    let sol = bases[Math.floor(Math.random()*bases.length)].map(r=>[...r]);
+    // Swap rows within band 0 or band 1
+    if(Math.random()>.5){[sol[0],sol[1]]=[sol[1],sol[0]];}
+    if(Math.random()>.5){[sol[2],sol[3]]=[sol[3],sol[2]];}
+    // Swap cols within band 0 or band 1
+    if(Math.random()>.5){sol=sol.map(r=>{[r[0],r[1]]=[r[1],r[0]];return r;});}
+    if(Math.random()>.5){sol=sol.map(r=>{[r[2],r[3]]=[r[3],r[2]];return r;});}
+    return sol;
+  }
+
+  const solution = generate4x4();
+  // Remove 6-8 cells
+  const removeCount = 6 + Math.floor(Math.random()*3);
+  const puzzle = solution.map(r=>[...r]);
+  let removed = 0;
+  const attempts = new Set();
+  while(removed < removeCount) {
+    const key = Math.floor(Math.random()*16);
+    if(attempts.has(key)) continue;
+    attempts.add(key);
+    puzzle[Math.floor(key/4)][key%4] = 0;
+    removed++;
+  }
+
+  const CELL = 68;
   body.innerHTML = timerHTML(total) + `
-    <div class="sudoku-grid g4" id="sudoku-g">
-      ${grid.flatMap((row,r) => row.map((val,c) => `
-        <input class="sudoku-cell" ${val?`value="${val}" data-given="true"`:''}
-          data-r="${r}" data-c="${c}" maxlength="1"
-          oninput="checkSudokuCell(this,${JSON.stringify(solution)},${size})"
-          onkeydown="if(this.dataset.given)return false"
-          type="text" inputmode="numeric">`
-      )).join('')}
+    <p style="font-size:.72rem;color:var(--muted);text-align:center;margin-bottom:.8rem">
+      Remplis la grille — chaque ligne, colonne et bloc 2x2 doit contenir 1, 2, 3 et 4.
+    </p>
+    <div style="display:grid;grid-template-columns:repeat(4,${CELL}px);gap:3px;
+      background:#7c6af755;padding:4px;border-radius:8px;margin:0 auto;width:fit-content;
+      border:2px solid #7c6af7">
+      ${puzzle.flatMap((row,r)=>row.map((val,c)=>{
+        const thick = (r===2?'border-top:2px solid #7c6af7;':'') + (c===2?'border-left:2px solid #7c6af7;':'');
+        return `<input type="text" inputmode="numeric" maxlength="1"
+          class="sudoku-cell" data-r="${r}" data-c="${c}"
+          ${val?`value="${val}" data-given="true"`:''}
+          style="width:${CELL}px;height:${CELL}px;text-align:center;font-size:1.3rem;
+            background:${val?'#1c1c26':'#0a0a0f'};
+            color:${val?'#7c6af7':'#f0f0f8'};
+            border:1px solid #2a2a38;outline:none;border-radius:4px;
+            ${thick}${val?'pointer-events:none;font-weight:700;':''}
+          "
+          oninput="this.value=this.value.replace(/[^1-4]/g,'');
+            const ok=+this.value===parseInt('${solution[r][c]}');
+            this.style.color=this.value?(ok?'#22c987':'#e8445a'):'#f0f0f8';"
+          onkeydown="if(this.dataset.given)return false;"
+        />`;
+      })).join('')}
     </div>
-    <button class="btn-primary" style="margin-top:1rem" onclick="verifySudoku(${JSON.stringify(solution)},${size},'${game.id}',${total})">Vérifier</button>
+    <button class="btn-primary" style="width:100%;margin-top:1rem"
+      onclick="verifySudoku4(${JSON.stringify(solution)},'${game.id}',${total})">
+      Verifier
+    </button>
   `;
-  startTimer(total, t => updateTimer(t, total), () => gameOver(game.id, 0));
+  startTimer(total, t=>updateTimer(t,total), ()=>gameOver(game.id,0));
 }
+
+window.verifySudoku4 = function(sol, gameId, total) {
+  const cells = document.querySelectorAll('.sudoku-cell');
+  let allOk = true;
+  cells.forEach(c => {
+    if(!c.dataset.given) {
+      const ok = +c.value === sol[+c.dataset.r][+c.dataset.c];
+      c.style.color = c.value ? (ok?'#22c987':'#e8445a') : '#f0f0f8';
+      if(!ok) allOk = false;
+    }
+  });
+  if(allOk) {
+    clearInterval(timerInterval);
+    gameWon(gameId, Math.max(100, Math.round(timeLeft/total*800)+200));
+  } else showToast('Grille incorrecte — les cases rouges ont une erreur !','error');
+};
+
 
 function checkSudokuCell(el, sol, size) {
   el.value = el.value.replace(/[^1-9]/g,'');
@@ -594,27 +664,97 @@ function verifySudoku(sol, size, gameId, total) {
 // MORSE
 function renderMorse(game, body) {
   const total = game.config.timeLimit;
-  const morseAlpha = {A:'.-',B:'-...',C:'-.-.',D:'-..',E:'.',F:'..-.',G:'--.',H:'....',I:'..',J:'.---',K:'-.-',L:'.-..',M:'--',N:'-.',O:'---',P:'.--.',Q:'--.-',R:'.-.',S:'...',T:'-',U:'..-',V:'...-',W:'.--',X:'-..-',Y:'-.--',Z:'--..'};
+
+  const MORSE = {A:'.-',B:'-...',C:'-.-.',D:'-..',E:'.',F:'..-.',G:'--.',H:'....',
+    I:'..',J:'.---',K:'-.-',L:'.-..',M:'--',N:'-.',O:'---',P:'.--.',Q:'--.-',
+    R:'.-.',S:'...',T:'-',U:'..-',V:'...-',W:'.--',X:'-..-',Y:'-.--',Z:'--..'};
+
+  // Pool of 40 words — picked randomly each time
+  const POOL = [
+    {word:'HELLO', hint:'Salutation courante en 5 lettres'},
+    {word:'WORLD', hint:'La planete en anglais'},
+    {word:'JAVA',  hint:'Langage de programmation, 4 lettres'},
+    {word:'KAFKA', hint:'Outil de messaging, 5 lettres'},
+    {word:'REDIS', hint:'Base de donnees en memoire'},
+    {word:'DOCKER',hint:'Outil de conteneurisation'},
+    {word:'SPRING',hint:'Framework Java populaire'},
+    {word:'CLOUD', hint:'L atmosphere numerique'},
+    {word:'LINUX', hint:'Systeme d exploitation libre'},
+    {word:'DEBUG', hint:'Chercher les bugs'},
+    {word:'PIXEL', hint:'Unite d une image numerique'},
+    {word:'LOGIC', hint:'Raisonnement en 5 lettres'},
+    {word:'ARRAY', hint:'Structure de donnees lineaire'},
+    {word:'INDEX', hint:'Position dans une liste'},
+    {word:'TOKEN', hint:'Jeton d authentification'},
+    {word:'QUEUE', hint:'File d attente'},
+    {word:'STACK', hint:'Structure LIFO'},
+    {word:'HASH',  hint:'Empreinte cryptographique'},
+    {word:'NODE',  hint:'Noeud d un arbre ou reseau'},
+    {word:'SCOPE', hint:'Portee d une variable'},
+    {word:'PROXY', hint:'Intermediaire reseau'},
+    {word:'CACHE', hint:'Memoire temporaire rapide'},
+    {word:'MUTEX', hint:'Verrou d exclusion mutuelle'},
+    {word:'FRAME', hint:'Image d une video ou trame reseau'},
+    {word:'PARSE', hint:'Analyser syntaxiquement'},
+    {word:'MERGE', hint:'Fusionner deux branches'},
+    {word:'FETCH', hint:'Aller chercher une ressource'},
+    {word:'ROUTE', hint:'Chemin dans une API'},
+    {word:'BUILD', hint:'Compiler et assembler'},
+    {word:'CLONE', hint:'Copier un depot Git'},
+    {word:'ALERT', hint:'Notification urgente'},
+    {word:'BINARY',hint:'Base 2, 6 lettres'},
+    {word:'CIPHER',hint:'Code secret, 6 lettres'},
+    {word:'DEPLOY',hint:'Mettre en production'},
+    {word:'ENCODE',hint:'Transformer en code'},
+    {word:'FORMAT',hint:'Mise en forme'},
+    {word:'KERNEL',hint:'Coeur du systeme d exploitation'},
+    {word:'LAUNCH',hint:'Demarrer une application'},
+    {word:'MATRIX',hint:'Tableau a deux dimensions'},
+    {word:'NESTED',hint:'Imbrique dans quelque chose'},
+  ];
+
+  // Pick 1 random word, build morse message
+  const pick = POOL[Math.floor(Math.random()*POOL.length)];
+  const morseMsg = pick.word.split('').map(c=>MORSE[c]).join('   ');
 
   body.innerHTML = timerHTML(total) + `
-    <div class="morse-msg">${game.config.message}</div>
-    <input class="answer-input" id="morse-ans" placeholder="Tape ta réponse ici..."
-      oninput="this.value=this.value.toUpperCase()"
-      onkeydown="if(event.key==='Enter')checkMorse('${game.config.answer}','${game.id}',${total})"/>
-    <p class="morse-hint">${game.config.hint}</p>
-    <div class="morse-table">
-      ${Object.entries(morseAlpha).map(([l,c])=>`<div class="morse-row"><span class="letter">${l}</span><span class="code">${c}</span></div>`).join('')}
+    <div style="font-family:var(--font-mono);font-size:1.3rem;letter-spacing:.25em;
+      color:var(--accent);text-align:center;padding:1.2rem;
+      background:var(--bg3);border-radius:8px;margin-bottom:1rem;
+      word-break:break-all;line-height:2">
+      ${morseMsg}
     </div>
-    <button class="btn-primary" style="margin-top:1.2rem" onclick="checkMorse('${game.config.answer}','${game.id}',${total})">Valider</button>
+    <p style="font-size:.7rem;color:var(--muted);text-align:center;margin-bottom:1rem">
+      Indice : ${pick.hint}
+    </p>
+    <input id="morse-ans" class="answer-input" placeholder="Ta reponse en majuscules..."
+      oninput="this.value=this.value.toUpperCase().replace(/[^A-Z]/g,'')"
+      onkeydown="if(event.key==='Enter')checkMorse2('${pick.word}','${game.id}',${total})"
+      style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;
+        padding:.8rem;color:var(--text);font-family:var(--font-mono);font-size:1.1rem;
+        text-align:center;letter-spacing:.15em;outline:none;"
+    />
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:.3rem;margin-top:1rem">
+      ${Object.entries(MORSE).map(([l,c])=>`
+        <div style="background:var(--bg3);border-radius:5px;padding:.3rem .4rem;
+          font-size:.65rem;display:flex;justify-content:space-between;">
+          <span style="color:var(--accent);font-weight:600">${l}</span>
+          <span style="color:var(--muted)">${c}</span>
+        </div>`).join('')}
+    </div>
+    <button class="btn-primary" style="width:100%;margin-top:1rem"
+      onclick="checkMorse2('${pick.word}','${game.id}',${total})">Valider</button>
   `;
-  startTimer(total, t => updateTimer(t, total), () => gameOver(game.id, 0));
+  startTimer(total, t=>updateTimer(t,total), ()=>gameOver(game.id,0));
 }
 
-function checkMorse(answer, gameId, total) {
-  const val = document.getElementById('morse-ans').value.trim().toUpperCase();
-  if (val === answer) gameWon(gameId, Math.round(timeLeft / total * 1000 + 200));
-  else showToast('Mauvaise réponse, essaie encore !', 'error');
-}
+window.checkMorse2 = function(answer, gameId, total) {
+  const val = document.getElementById('morse-ans')?.value.trim().toUpperCase();
+  if(!val) return;
+  if(val === answer) gameWon(gameId, Math.max(100,Math.round(timeLeft/total*1000)+200));
+  else showToast('Mauvaise reponse — essaie encore !','error');
+};
+
 
 // PARKING RUSH — moteur complet avec collision et drag réel
 function renderParking(game, body) {
@@ -763,116 +903,240 @@ function checkCaesar(answer, gameId, total) {
 // ── PUZZLE IMAGE ──────────────────────────────────────────────────
 function renderPuzzleImage(game, body) {
   const total = game.config.timeLimit;
-  const SIZE = 3; // 3x3 grid
-  // Generate a colorful abstract image with CSS grid squares
-  const COLORS = [
-    ['#7c6af7','#5a52d5','#e8445a','#f5a623','#22c987','#63b3ed','#f6ad55','#fc8181','#68d391'],
-    ['#22c987','#7c6af7','#f5a623','#e8445a','#63b3ed','#fc8181','#68d391','#5a52d5','#f6ad55'],
-    ['#f5a623','#22c987','#63b3ed','#7c6af7','#fc8181','#68d391','#e8445a','#f6ad55','#5a52d5'],
+  const N = 3;
+  const TILE = 110;
+  const FULL = N * TILE;
+
+  const SCENES = [
+    {name:'Coucher de soleil', svg:`<svg width="${FULL}" height="${FULL}" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1a0533"/><stop offset="60%" stop-color="#c0392b"/><stop offset="100%" stop-color="#f39c12"/></linearGradient><linearGradient id="sea" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1a6b8a"/><stop offset="100%" stop-color="#0d2b3e"/></linearGradient></defs><rect width="${FULL}" height="${FULL*0.6}" fill="url(#sky)"/><rect y="${FULL*0.6}" width="${FULL}" height="${FULL*0.4}" fill="url(#sea)"/><circle cx="${FULL/2}" cy="${FULL*0.35}" r="48" fill="#f39c12" opacity=".9"/><ellipse cx="${FULL/2}" cy="${FULL*0.62}" rx="${FULL*0.55}" ry="10" fill="#f39c12" opacity=".25"/><rect x="${FULL/2-4}" y="${FULL*0.62}" width="8" height="${FULL*0.38}" fill="#f39c12" opacity=".3"/></svg>`},
+    {name:'Montagne', svg:`<svg width="${FULL}" height="${FULL}" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="bg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0f2027"/><stop offset="100%" stop-color="#203a43"/></linearGradient></defs><rect width="${FULL}" height="${FULL}" fill="url(#bg2)"/><polygon points="0,${FULL} 80,${FULL*0.3} 160,${FULL}" fill="#1a3a2a"/><polygon points="60,${FULL} 170,${FULL*0.2} 280,${FULL}" fill="#1e4530"/><polygon points="150,${FULL} 250,${FULL*0.35} 350,${FULL}" fill="#16302a"/><polygon points="200,${FULL} 330,${FULL*0.15} ${FULL},${FULL*0.4}" fill="#0e2a22"/><polygon points="80,${FULL*0.3} 70,${FULL*0.28} 90,${FULL*0.28}" fill="white" opacity=".7"/><polygon points="170,${FULL*0.2} 160,${FULL*0.18} 180,${FULL*0.18}" fill="white" opacity=".8"/><polygon points="330,${FULL*0.15} 320,${FULL*0.13} 340,${FULL*0.13}" fill="white" opacity=".9"/></svg>`},
+    {name:'Ville de nuit', svg:`<svg width="${FULL}" height="${FULL}" xmlns="http://www.w3.org/2000/svg"><rect width="${FULL}" height="${FULL}" fill="#0a0a1a"/><rect x="0" y="160" width="25" height="170" fill="#1a1a35"/><rect x="30" y="120" width="30" height="210" fill="#15152e"/><rect x="65" y="90" width="22" height="240" fill="#1c1c38"/><rect x="92" y="140" width="35" height="190" fill="#111128"/><rect x="132" y="70" width="28" height="260" fill="#1a1a35"/><rect x="165" y="110" width="20" height="220" fill="#15152e"/><rect x="190" y="150" width="32" height="180" fill="#1c1c38"/><rect x="228" y="85" width="26" height="245" fill="#1a1a35"/><rect x="259" y="130" width="40" height="200" fill="#111128"/><rect x="304" y="95" width="24" height="235" fill="#15152e"/><rect x="8" y="170" width="7" height="9" fill="#ffd700" opacity=".7"/><rect x="8" y="188" width="7" height="9" fill="#ffd700" opacity=".5"/><rect x="38" y="130" width="7" height="9" fill="#ffd700" opacity=".8"/><rect x="38" y="148" width="7" height="9" fill="#ffd700" opacity=".4"/><rect x="73" y="100" width="7" height="9" fill="#ffd700" opacity=".6"/><rect x="100" y="150" width="7" height="9" fill="#ffd700" opacity=".9"/><rect x="140" y="80" width="7" height="9" fill="#ffd700" opacity=".7"/><rect x="140" y="98" width="7" height="9" fill="#ffd700" opacity=".5"/><rect x="170" y="120" width="7" height="9" fill="#ffd700" opacity=".6"/><rect x="198" y="160" width="7" height="9" fill="#ffd700" opacity=".8"/><rect x="236" y="95" width="7" height="9" fill="#ffd700" opacity=".4"/><rect x="267" y="140" width="7" height="9" fill="#ffd700" opacity=".7"/><rect x="312" y="105" width="7" height="9" fill="#ffd700" opacity=".9"/><circle cx="50" cy="25" r="2" fill="white" opacity=".9"/><circle cx="120" cy="15" r="1.5" fill="white" opacity=".7"/><circle cx="200" cy="30" r="2" fill="white" opacity=".8"/><circle cx="280" cy="20" r="1.5" fill="white" opacity=".6"/><circle cx="320" cy="10" r="2" fill="white" opacity=".9"/></svg>`},
+    {name:'Foret', svg:`<svg width="${FULL}" height="${FULL}" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="sky4" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#87ceeb"/><stop offset="100%" stop-color="#e0f4ff"/></linearGradient></defs><rect width="${FULL}" height="${FULL}" fill="url(#sky4)"/><rect y="${FULL*0.65}" width="${FULL}" height="${FULL*0.35}" fill="#2d5a1b"/><polygon points="${FULL/2-18},${FULL} ${FULL/2+18},${FULL} ${FULL/2},${FULL*0.65}" fill="#c8a96e"/><rect x="10" y="170" width="14" height="160" fill="#3d2b1f"/><polygon points="17,110 -13,190 47,190" fill="#1a4a0a"/><polygon points="17,80 -8,155 42,155" fill="#1e5c0c"/><rect x="60" y="140" width="18" height="190" fill="#3d2b1f"/><polygon points="69,75 34,165 104,165" fill="#1a4a0a"/><polygon points="69,45 39,130 99,130" fill="#1e5c0c"/><rect x="260" y="150" width="16" height="180" fill="#3d2b1f"/><polygon points="268,90 238,175 298,175" fill="#1a4a0a"/><polygon points="268,60 243,140 293,140" fill="#1e5c0c"/><rect x="310" y="130" width="20" height="200" fill="#3d2b1f"/><polygon points="320,65 285,160 355,160" fill="#1a4a0a"/><polygon points="320,35 290,120 350,120" fill="#1e5c0c"/></svg>`},
   ];
-  const palette = COLORS[Math.floor(Math.random()*COLORS.length)];
-  const SHAPES = ['◆','★','●','▲','■','◯','♦','✦','⬟'];
 
-  // Create shuffled positions
-  let positions = Array.from({length:SIZE*SIZE},(_,i)=>i);
-  let shuffled = [...positions];
-  do { shuffled.sort(()=>Math.random()-.5); } while(shuffled.join()===positions.join());
-
-  const CELL = 80;
+  let customImageData = null; // set if user uploads
+  let selectedScene = Math.floor(Math.random()*SCENES.length);
+  let boardState = [];
   let selected = null;
-  let swaps = 0;
-  let puzzleState = [...shuffled]; // puzzleState[displayPos] = pieceId
+  let moves = 0;
+  const ROTATIONS = [0,90,180,270];
 
-  function buildPuzzle() {
+  function getCurrentSVG() {
+    return SCENES[selectedScene].svg;
+  }
+
+  function initBoard(imageSource) {
+    let order = Array.from({length:9},(_,i)=>i);
+    for(let i=8;i>0;i--){const j=Math.floor(Math.random()*(i+1));[order[i],order[j]]=[order[j],order[i]];}
+    boardState = order.map(origIdx=>({
+      origIdx,
+      rot: ROTATIONS[1+Math.floor(Math.random()*3)] // never start at 0
+    }));
+    // ensure at least one tile needs rotation correction
+    selected = null;
+    moves = 0;
+  }
+
+  function buildUI() {
     body.innerHTML = timerHTML(total) + `
-      <p style="font-size:.72rem;color:var(--muted);text-align:center;margin-bottom:.8rem">
-        Clique sur deux pièces pour les échanger — reconstitue l'image originale
+      <div style="display:flex;gap:.5rem;align-items:center;justify-content:center;margin-bottom:.8rem;flex-wrap:wrap">
+        <span style="font-size:.68rem;color:var(--muted)">Image :</span>
+        ${SCENES.map((s,i)=>`<button onclick="pzSelectScene(${i})" style="
+          font-size:.65rem;padding:3px 10px;border-radius:20px;cursor:pointer;
+          border:1px solid ${selectedScene===i?'var(--accent)':'var(--border)'};
+          background:${selectedScene===i?'rgba(124,106,247,.15)':'none'};
+          color:${selectedScene===i?'var(--accent)':'var(--muted)'};
+          transition:all .15s">${s.name}</button>`).join('')}
+        <label style="font-size:.65rem;padding:3px 10px;border-radius:20px;cursor:pointer;
+          border:1px solid var(--border);color:var(--muted);background:none;
+          transition:border-color .2s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+          + Importer
+          <input type="file" accept="image/*" onchange="pzUpload(event)" style="display:none"/>
+        </label>
+      </div>
+      <p style="font-size:.68rem;color:var(--muted);text-align:center;margin-bottom:.6rem">
+        Clic pour echanger — double-clic ou clic droit pour pivoter de 90 deg
       </p>
-      <div style="display:flex;gap:1.5rem;justify-content:center;align-items:flex-start;flex-wrap:wrap">
+      <div style="display:flex;gap:1.2rem;justify-content:center;align-items:flex-start;flex-wrap:wrap">
         <div>
-          <p style="font-size:.65rem;color:var(--muted);text-align:center;margin-bottom:.4rem">À résoudre</p>
-          <div id="pz-board" style="display:grid;grid-template-columns:repeat(${SIZE},${CELL}px);gap:4px;background:#1c1c26;padding:8px;border-radius:10px;border:1px solid #2a2a38"></div>
+          <p style="font-size:.6rem;color:var(--muted);text-align:center;margin-bottom:.3rem">A reconstituer</p>
+          <div id="pz-board" style="display:grid;grid-template-columns:repeat(3,${TILE}px);
+            gap:3px;background:#2a2a38;padding:4px;border-radius:10px"></div>
+          <p id="pz-moves" style="font-size:.68rem;color:var(--muted);text-align:center;margin-top:.4rem">0 mouvement(s)</p>
         </div>
         <div>
-          <p style="font-size:.65rem;color:var(--muted);text-align:center;margin-bottom:.4rem">Objectif</p>
-          <div style="display:grid;grid-template-columns:repeat(${SIZE},${CELL}px);gap:4px;background:#1c1c26;padding:8px;border-radius:10px;border:1px solid #2a2a38">
-            ${positions.map(i=>`
-              <div style="width:${CELL}px;height:${CELL}px;background:${palette[i]};border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:1.6rem;opacity:.7">${SHAPES[i]}</div>
-            `).join('')}
-          </div>
+          <p style="font-size:.6rem;color:var(--muted);text-align:center;margin-bottom:.3rem">Reference</p>
+          <canvas id="pz-ref" width="${FULL}" height="${FULL}"
+            style="border-radius:8px;border:1px solid #2a2a38;display:block;
+              width:${FULL*0.52}px;height:${FULL*0.52}px"></canvas>
         </div>
       </div>
-      <p style="font-size:.7rem;color:var(--muted);text-align:center;margin-top:.8rem" id="pz-swaps">0 échange(s)</p>
     `;
-    renderBoard();
+    renderReference();
+    renderTiles();
   }
 
-  function renderBoard() {
-    const board = document.getElementById('pz-board'); if(!board) return;
-    board.innerHTML = puzzleState.map((pieceId, pos) => `
-      <div onclick="pzClick(${pos})" data-pos="${pos}" style="
-        width:${CELL}px;height:${CELL}px;
-        background:${palette[pieceId]};
-        border-radius:6px;
-        display:flex;align-items:center;justify-content:center;
-        font-size:1.6rem;cursor:pointer;
-        border:3px solid transparent;
-        transition:border-color .15s,transform .1s;
-        transform:${selected===pos?'scale(1.08)':'scale(1)'};
-        border-color:${selected===pos?'#fff':'transparent'};
-      ">${SHAPES[pieceId]}</div>
-    `).join('');
-  }
-
-  window.pzClick = function(pos) {
-    if(selected === null) {
-      selected = pos;
-      renderBoard();
-    } else if(selected === pos) {
-      selected = null;
-      renderBoard();
+  function renderReference() {
+    const canvas = document.getElementById('pz-ref');
+    if(!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if(customImageData) {
+      const img = new Image();
+      img.onload = ()=>{
+        ctx.drawImage(img,0,0,FULL,FULL);
+        drawGridLines(ctx);
+      };
+      img.src = customImageData;
     } else {
-      // swap
-      [puzzleState[selected], puzzleState[pos]] = [puzzleState[pos], puzzleState[selected]];
-      swaps++;
-      selected = null;
-      renderBoard();
-      const sw = document.getElementById('pz-swaps');
-      if(sw) sw.textContent = `${swaps} échange(s)`;
-      // check win
-      if(puzzleState.join(',') === positions.join(',')) {
-        clearInterval(timerInterval);
-        const score = Math.max(100, Math.round(timeLeft/total*700) + Math.max(0,20-swaps)*15);
-        setTimeout(()=>gameWon(game.id, score), 300);
+      const img = new Image();
+      const blob = new Blob([getCurrentSVG()],{type:'image/svg+xml'});
+      const url = URL.createObjectURL(blob);
+      img.onload = ()=>{ ctx.drawImage(img,0,0,FULL,FULL); drawGridLines(ctx); URL.revokeObjectURL(url); };
+      img.src = url;
+    }
+  }
+
+  function drawGridLines(ctx) {
+    ctx.strokeStyle='rgba(42,42,56,.9)'; ctx.lineWidth=2;
+    for(let i=1;i<3;i++){
+      ctx.beginPath();ctx.moveTo(i*TILE,0);ctx.lineTo(i*TILE,FULL);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(0,i*TILE);ctx.lineTo(FULL,i*TILE);ctx.stroke();
+    }
+  }
+
+  function drawTileOnCanvas(canvas, origIdx, rotation, imageSource, isCustom) {
+    const ctx = canvas.getContext('2d');
+    const col = origIdx%3, row = Math.floor(origIdx/3);
+    const img = new Image();
+    function onLoad() {
+      ctx.clearRect(0,0,TILE,TILE);
+      ctx.save();
+      ctx.translate(TILE/2,TILE/2);
+      ctx.rotate(rotation*Math.PI/180);
+      ctx.translate(-TILE/2,-TILE/2);
+      ctx.drawImage(img, col*TILE, row*TILE, TILE, TILE, 0, 0, TILE, TILE);
+      ctx.restore();
+      if(rotation!==0){
+        ctx.fillStyle='rgba(124,106,247,.75)';
+        ctx.font='bold 10px sans-serif';
+        ctx.textAlign='right'; ctx.textBaseline='top';
+        ctx.fillText(rotation+'°', TILE-4, 4);
       }
+    }
+    if(isCustom){
+      img.onload = onLoad;
+      img.src = imageSource;
+    } else {
+      const blob = new Blob([imageSource],{type:'image/svg+xml'});
+      const url = URL.createObjectURL(blob);
+      img.onload = ()=>{ onLoad(); URL.revokeObjectURL(url); };
+      img.src = url;
+    }
+  }
+
+  function renderTiles() {
+    const board = document.getElementById('pz-board');
+    if(!board) return;
+    board.innerHTML='';
+    boardState.forEach((tile,slot)=>{
+      const canvas = document.createElement('canvas');
+      canvas.width=TILE; canvas.height=TILE;
+      canvas.style.cssText=`display:block;cursor:pointer;border-radius:6px;
+        border:3px solid ${selected===slot?'#ffffff':'transparent'};
+        transition:border-color .15s,transform .1s;
+        ${selected===slot?'transform:scale(1.06)':''}`;
+      const src = customImageData || getCurrentSVG();
+      drawTileOnCanvas(canvas, tile.origIdx, tile.rot, src, !!customImageData);
+      canvas.addEventListener('click',()=>pzClick(slot));
+      canvas.addEventListener('dblclick',e=>{e.preventDefault();pzRotate(slot);});
+      canvas.addEventListener('contextmenu',e=>{e.preventDefault();pzRotate(slot);});
+      board.appendChild(canvas);
+    });
+  }
+
+  window.pzClick = function(slot) {
+    if(selected===null){selected=slot;renderTiles();return;}
+    if(selected===slot){selected=null;renderTiles();return;}
+    [boardState[selected],boardState[slot]]=[boardState[slot],boardState[selected]];
+    moves++;
+    const m=document.getElementById('pz-moves');
+    if(m) m.textContent=`${moves} mouvement(s)`;
+    selected=null; renderTiles(); pzCheckWin();
+  };
+
+  window.pzRotate = function(slot) {
+    boardState[slot].rot=(boardState[slot].rot+90)%360;
+    renderTiles(); pzCheckWin();
+  };
+
+  window.pzCheckWin = function() {
+    if(boardState.every((t,i)=>t.origIdx===i&&t.rot===0)){
+      clearInterval(timerInterval);
+      const score=Math.max(100,Math.round(timeLeft/total*800)+Math.max(0,30-moves)*10);
+      setTimeout(()=>gameWon(game.id,score),400);
     }
   };
 
-  buildPuzzle();
-  startTimer(total, t => updateTimer(t, total), () => gameOver(game.id, 0));
+  window.pzSelectScene = function(idx) {
+    selectedScene=idx; customImageData=null;
+    initBoard(); renderReference(); renderTiles();
+    // Refresh scene buttons
+    document.querySelectorAll('[onclick^="pzSelectScene"]').forEach((btn,i)=>{
+      btn.style.borderColor = i===idx?'var(--accent)':'var(--border)';
+      btn.style.background = i===idx?'rgba(124,106,247,.15)':'none';
+      btn.style.color = i===idx?'var(--accent)':'var(--muted)';
+    });
+  };
+
+  window.pzUpload = function(event) {
+    const file = event.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      customImageData = e.target.result;
+      initBoard(); renderReference(); renderTiles();
+      // Deselect scene buttons
+      document.querySelectorAll('[onclick^="pzSelectScene"]').forEach(btn=>{
+        btn.style.borderColor='var(--border)';
+        btn.style.background='none';
+        btn.style.color='var(--muted)';
+      });
+      showToast('Image importee ! Bonne chance.','success');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  initBoard();
+  buildUI();
+  startTimer(total, t=>updateTimer(t,total), ()=>gameOver(game.id,0));
 }
+
 
 // ── LABYRINTHE ────────────────────────────────────────────────────
 function renderLabyrinth(game, body) {
   const total = game.config.timeLimit;
-  const COLS = 11, ROWS = 11; // odd numbers for maze gen
-  const CELL = 32;
+  const diff = game.difficulty || 'MEDIUM';
 
-  // Maze generation — Recursive Backtracker (DFS)
-  function genMaze(cols, rows) {
-    const maze = Array.from({length:rows}, ()=>Array(cols).fill(0b1111)); // 4 walls: N E S W
-    const visited = Array.from({length:rows}, ()=>Array(cols).fill(false));
-    const N=0b1000, E=0b0100, S=0b0010, W=0b0001;
-    const OPP = {[N]:S,[S]:N,[E]:W,[W]:E};
-    const DIR = [[0,-1,N],[1,0,E],[0,1,S],[-1,0,W]];
+  // Size varies by play — medium=11x11, can scale
+  const SIZES = [9,11,13];
+  const COLS = SIZES[Math.floor(Math.random()*SIZES.length)];
+  const ROWS = COLS;
+  const CELL = Math.min(32, Math.floor(340/COLS));
+
+  const N=0b1000, E=0b0100, S=0b0010, W=0b0001;
+  const OPP={[N]:S,[S]:N,[E]:W,[W]:E};
+  const DIRS=[[0,-1,N],[1,0,E],[0,1,S],[-1,0,W]];
+
+  function genMaze(cols,rows){
+    const maze=Array.from({length:rows},()=>Array(cols).fill(0b1111));
+    const visited=Array.from({length:rows},()=>Array(cols).fill(false));
     function carve(x,y){
       visited[y][x]=true;
-      const dirs=[...DIR].sort(()=>Math.random()-.5);
+      const dirs=[...DIRS].sort(()=>Math.random()-.5);
       for(const [dx,dy,bit] of dirs){
         const nx=x+dx,ny=y+dy;
         if(nx>=0&&nx<cols&&ny>=0&&ny<rows&&!visited[ny][nx]){
-          maze[y][x]&=~bit; maze[ny][nx]&=~OPP[bit];
-          carve(nx,ny);
+          maze[y][x]&=~bit; maze[ny][nx]&=~OPP[bit]; carve(nx,ny);
         }
       }
     }
@@ -880,94 +1144,144 @@ function renderLabyrinth(game, body) {
     return maze;
   }
 
-  const maze = genMaze(COLS, ROWS);
-  let px=0, py=0;
-  const ex=COLS-1, ey=ROWS-1;
-  let moves=0;
-  const N=0b1000, E=0b0100, S=0b0010, W=0b0001;
-
-  function buildBoard() {
-    const bw = COLS*CELL + 2, bh = ROWS*CELL + 2;
-    body.innerHTML = timerHTML(total) + `
-      <p style="font-size:.72rem;color:var(--muted);text-align:center;margin-bottom:.8rem">
-        Rejoins la case <span style="color:#22c987">verte</span> — Clavier ↑↓←→ ou boutons
-      </p>
-      <div style="display:flex;justify-content:center">
-        <canvas id="maze-canvas" width="${bw}" height="${bh}" style="border-radius:8px;display:block;cursor:default"></canvas>
-      </div>
-      <div style="display:flex;justify-content:center;gap:.5rem;margin-top:.8rem;flex-wrap:wrap">
-        <div style="display:grid;grid-template-columns:repeat(3,36px);grid-template-rows:repeat(2,36px);gap:4px">
-          <div></div>
-          <button onclick="mazeMove(0,-1)" style="width:36px;height:36px;border-radius:6px;border:1px solid #2a2a38;background:#1c1c26;color:#f0f0f8;cursor:pointer;font-size:.9rem">↑</button>
-          <div></div>
-          <button onclick="mazeMove(-1,0)" style="width:36px;height:36px;border-radius:6px;border:1px solid #2a2a38;background:#1c1c26;color:#f0f0f8;cursor:pointer;font-size:.9rem">←</button>
-          <button onclick="mazeMove(0,1)" style="width:36px;height:36px;border-radius:6px;border:1px solid #2a2a38;background:#1c1c26;color:#f0f0f8;cursor:pointer;font-size:.9rem">↓</button>
-          <button onclick="mazeMove(1,0)" style="width:36px;height:36px;border-radius:6px;border:1px solid #2a2a38;background:#1c1c26;color:#f0f0f8;cursor:pointer;font-size:.9rem">→</button>
-        </div>
-      </div>
-      <p style="font-size:.7rem;color:var(--muted);text-align:center;margin-top:.6rem" id="maze-moves">0 pas</p>
-    `;
-    drawMaze();
-    // Keyboard
-    window._mazeKeyHandler = function(e) {
-      const map = {ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0]};
-      if(map[e.key]) { e.preventDefault(); mazeMove(...map[e.key]); }
-    };
-    document.addEventListener('keydown', window._mazeKeyHandler);
+  // BFS to find shortest path
+  function findPath(maze,cols,rows){
+    const queue=[[0,0,[]]];
+    const visited=Array.from({length:rows},()=>Array(cols).fill(false));
+    visited[0][0]=true;
+    while(queue.length){
+      const [x,y,path]=queue.shift();
+      const newPath=[...path,{x,y}];
+      if(x===cols-1&&y===rows-1) return newPath;
+      for(const [dx,dy,bit] of DIRS){
+        const nx=x+dx,ny=y+dy;
+        if(nx>=0&&nx<cols&&ny>=0&&ny<rows&&!visited[ny][nx]&&!(maze[y][x]&bit)){
+          visited[ny][nx]=true;
+          queue.push([nx,ny,newPath]);
+        }
+      }
+    }
+    return [];
   }
 
-  function drawMaze() {
-    const canvas = document.getElementById('maze-canvas'); if(!canvas) return;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#1c1c26'; ctx.fillRect(0,0,canvas.width,canvas.height);
-    for(let y=0;y<ROWS;y++) for(let x=0;x<COLS;x++) {
+  const maze=genMaze(COLS,ROWS);
+  const ex=COLS-1, ey=ROWS-1;
+  let px=0, py=0;
+  let steps=0;
+  let hintPath=null;
+  let showHint=false;
+
+  const BW=COLS*CELL+2, BH=ROWS*CELL+2;
+
+  function buildBoard(){
+    body.innerHTML=timerHTML(total)+`
+      <p style="font-size:.68rem;color:var(--muted);text-align:center;margin-bottom:.6rem">
+        Grille ${COLS}x${ROWS} — rejoins la case verte
+        <span style="margin-left:.5rem">Clavier fleches ou boutons</span>
+      </p>
+      <div style="display:flex;justify-content:center;gap:1rem;align-items:flex-start;flex-wrap:wrap">
+        <canvas id="maze-canvas" width="${BW}" height="${BH}"
+          style="border-radius:8px;display:block;max-width:100%"></canvas>
+        <div style="display:flex;flex-direction:column;gap:.5rem;align-items:center">
+          <div style="display:grid;grid-template-columns:repeat(3,38px);grid-template-rows:repeat(2,38px);gap:4px">
+            <div></div>
+            <button onclick="mazeMove(0,-1)" style="width:38px;height:38px;border-radius:6px;border:1px solid #2a2a38;background:#1c1c26;color:#f0f0f8;cursor:pointer;font-size:1rem">↑</button>
+            <div></div>
+            <button onclick="mazeMove(-1,0)" style="width:38px;height:38px;border-radius:6px;border:1px solid #2a2a38;background:#1c1c26;color:#f0f0f8;cursor:pointer;font-size:1rem">←</button>
+            <button onclick="mazeMove(0,1)" style="width:38px;height:38px;border-radius:6px;border:1px solid #2a2a38;background:#1c1c26;color:#f0f0f8;cursor:pointer;font-size:1rem">↓</button>
+            <button onclick="mazeMove(1,0)" style="width:38px;height:38px;border-radius:6px;border:1px solid #2a2a38;background:#1c1c26;color:#f0f0f8;cursor:pointer;font-size:1rem">→</button>
+          </div>
+          <button onclick="toggleHint()" style="font-size:.68rem;padding:5px 12px;border-radius:6px;
+            border:1px solid #2a2a38;background:none;color:var(--muted);cursor:pointer;margin-top:.3rem">
+            Indice (chemin)
+          </button>
+          <p id="maze-steps" style="font-size:.68rem;color:var(--muted);margin-top:.3rem">0 pas</p>
+        </div>
+      </div>
+    `;
+    window._mazeKeyHandler=e=>{
+      const map={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0]};
+      if(map[e.key]){e.preventDefault();mazeMove(...map[e.key]);}
+    };
+    document.addEventListener('keydown',window._mazeKeyHandler);
+    drawMaze();
+  }
+
+  function drawMaze(){
+    const canvas=document.getElementById('maze-canvas');
+    if(!canvas) return;
+    const ctx=canvas.getContext('2d');
+    ctx.fillStyle='#1c1c26'; ctx.fillRect(0,0,BW,BH);
+
+    // Draw hint path first (under cells)
+    if(showHint&&hintPath){
+      hintPath.forEach(({x,y})=>{
+        ctx.fillStyle='rgba(245,166,35,.12)';
+        ctx.fillRect(x*CELL+1,y*CELL+1,CELL,CELL);
+      });
+    }
+
+    for(let y=0;y<ROWS;y++) for(let x=0;x<COLS;x++){
       const cx=x*CELL+1, cy=y*CELL+1;
-      // cell bg
-      if(x===ex&&y===ey) ctx.fillStyle='rgba(34,201,135,.25)';
-      else if(x===px&&y===py) ctx.fillStyle='rgba(124,106,247,.3)';
+      if(x===ex&&y===ey) ctx.fillStyle='rgba(34,201,135,.3)';
+      else if(x===px&&y===py) ctx.fillStyle='rgba(124,106,247,.35)';
       else ctx.fillStyle='#0a0a0f';
-      ctx.beginPath(); ctx.rect(cx,cy,CELL,CELL); ctx.fill();
-      // walls
-      ctx.strokeStyle='#2a2a38'; ctx.lineWidth=2;
+      ctx.fillRect(cx,cy,CELL,CELL);
+      ctx.strokeStyle='#2a2a38'; ctx.lineWidth=1.5;
       if(maze[y][x]&N){ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+CELL,cy);ctx.stroke();}
       if(maze[y][x]&E){ctx.beginPath();ctx.moveTo(cx+CELL,cy);ctx.lineTo(cx+CELL,cy+CELL);ctx.stroke();}
       if(maze[y][x]&S){ctx.beginPath();ctx.moveTo(cx,cy+CELL);ctx.lineTo(cx+CELL,cy+CELL);ctx.stroke();}
       if(maze[y][x]&W){ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx,cy+CELL);ctx.stroke();}
     }
-    // player
-    const cx2=px*CELL+1+CELL/2, cy2=py*CELL+1+CELL/2;
+    // Player dot
     ctx.fillStyle='#7c6af7';
-    ctx.beginPath(); ctx.arc(cx2,cy2,CELL/2-6,0,Math.PI*2); ctx.fill();
-    // exit marker
-    const ex2=ex*CELL+1+CELL/2, ey2=ey*CELL+1+CELL/2;
-    ctx.fillStyle='#22c987';
-    ctx.font=`${CELL-10}px sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillText('⚑',ex2,ey2+2);
+    ctx.beginPath();
+    ctx.arc(px*CELL+1+CELL/2,py*CELL+1+CELL/2,CELL/2-4,0,Math.PI*2);
+    ctx.fill();
+    // Exit flag
+    ctx.font=`${CELL-6}px sans-serif`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('⚑',ex*CELL+1+CELL/2,ey*CELL+1+CELL/2+2);
   }
 
-  window.mazeMove = function(dx, dy) {
-    const nx=px+dx, ny=py+dy;
+  window.mazeMove=function(dx,dy){
+    const nx=px+dx,ny=py+dy;
     if(nx<0||nx>=COLS||ny<0||ny>=ROWS) return;
-    // check wall
-    const bit = dy===-1?N:dy===1?S:dx===1?E:W;
-    if(maze[py][px]&bit) return; // wall blocks
-    px=nx; py=ny; moves++;
-    const m=document.getElementById('maze-moves'); if(m) m.textContent=`${moves} pas`;
+    const bit=dy===-1?N:dy===1?S:dx===1?E:W;
+    if(maze[py][px]&bit) return;
+    px=nx; py=ny; steps++;
+    const m=document.getElementById('maze-steps');
+    if(m) m.textContent=`${steps} pas`;
     drawMaze();
-    if(px===ex&&py===ey) {
+    if(px===ex&&py===ey){
       clearInterval(timerInterval);
-      document.removeEventListener('keydown', window._mazeKeyHandler);
-      const score = Math.max(100, Math.round(timeLeft/total*800) + Math.max(0,100-moves)*3);
-      setTimeout(()=>gameWon(game.id, score), 300);
+      document.removeEventListener('keydown',window._mazeKeyHandler);
+      const optimal=hintPath?hintPath.length-1:steps;
+      const bonus=steps<=optimal*1.3?300:steps<=optimal*2?150:0;
+      const score=Math.max(100,Math.round(timeLeft/total*800)+bonus);
+      setTimeout(()=>gameWon(game.id,score),300);
+    }
+  };
+
+  window.toggleHint=function(){
+    if(!hintPath) hintPath=findPath(maze,COLS,ROWS);
+    showHint=!showHint;
+    drawMaze();
+    const btn=document.querySelector('[onclick="toggleHint()"]');
+    if(btn){
+      btn.style.borderColor=showHint?'var(--amber)':'#2a2a38';
+      btn.style.color=showHint?'var(--amber)':'var(--muted)';
+      btn.textContent=showHint?'Masquer le chemin':'Indice (chemin)';
     }
   };
 
   buildBoard();
-  startTimer(total, t => updateTimer(t, total), () => {
-    document.removeEventListener('keydown', window._mazeKeyHandler);
-    gameOver(game.id, 0);
+  startTimer(total,t=>updateTimer(t,total),()=>{
+    document.removeEventListener('keydown',window._mazeKeyHandler);
+    gameOver(game.id,0);
   });
 }
+
 
 // ── RECRÉER L'IMAGE ───────────────────────────────────────────────
 function renderImageRecreate(game, body) {
@@ -1197,51 +1511,57 @@ function renderHanoi(game, body) {
   const N = game.config.disks || 4;
   const MIN_MOVES = Math.pow(2,N)-1;
 
-  // State: 3 pegs, each is array of disk sizes (largest=N at bottom)
-  let pegs = [Array.from({length:N},(_,i)=>N-i), [], []];
-  let selected = null; // selected peg index
-  let moveCount = 0;
-  let won = false;
+  let pegs=[Array.from({length:N},(_,i)=>N-i),[],[]];
+  let selected=null;
+  let moveCount=0;
+  let won=false;
+  let animating=false;
 
-  const PEG_W = 110, PEG_H = 180, DISK_H = 20, GAP = 3;
-  const COLORS = ['#7c6af7','#22c987','#f5a623','#e8445a','#63b3ed'];
-
-  function diskColor(size){ return COLORS[(size-1)%COLORS.length]; }
-  function diskWidth(size){ return 20 + size * (PEG_W*0.7/N); }
+  const PEG_W=120, PEG_H=200, DISK_H=22, GAP=3;
+  const COLORS=['#7c6af7','#22c987','#f5a623','#e8445a','#63b3ed'];
+  const diskColor=size=>COLORS[(size-1)%COLORS.length];
+  const diskWidth=size=>22+size*(PEG_W*0.65/N);
 
   function buildBoard(){
-    body.innerHTML = timerHTML(total) + `
-      <p style="font-size:.72rem;color:var(--muted);text-align:center;margin-bottom:.8rem">
-        Déplace tous les disques sur la tige de droite — min. <strong>${MIN_MOVES}</strong> mouvements
+    body.innerHTML=timerHTML(total)+`
+      <p style="font-size:.68rem;color:var(--muted);text-align:center;margin-bottom:.5rem">
+        Deplacement minimum : <strong style="color:var(--accent)">${MIN_MOVES}</strong> mouvements
+        — un grand disque ne peut jamais etre pose sur un petit
       </p>
-      <div style="display:flex;justify-content:center;gap:4px">
+      <div style="display:flex;justify-content:center;gap:8px">
         ${[0,1,2].map(i=>`
-          <div onclick="hanoiClick(${i})" id="hpeg-${i}" style="
-            width:${PEG_W}px;cursor:pointer;padding:6px;border-radius:10px;
-            border:2px solid transparent;transition:border-color .15s;
-            background:#1c1c26;display:flex;flex-direction:column;align-items:center;
-          ">
-            <div id="hdisks-${i}" style="width:100%;min-height:${PEG_H}px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;position:relative">
-              <div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:6px;height:${PEG_H}px;background:#2a2a38;border-radius:3px"></div>
+          <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;
+            width:${PEG_W}px" onclick="hanoiClick(${i})" id="hpeg-${i}">
+            <div id="hdisks-${i}" style="width:100%;height:${PEG_H}px;
+              display:flex;flex-direction:column;justify-content:flex-end;align-items:center;
+              position:relative;border-bottom:3px solid #2a2a38">
+              <div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);
+                width:5px;height:${PEG_H}px;background:#2a2a38;border-radius:3px;z-index:0"></div>
             </div>
-            <div style="width:100%;height:6px;background:#2a2a38;border-radius:3px;margin-top:4px"></div>
-            <p style="font-size:.65rem;color:var(--muted);margin-top:.3rem">${['A','B','C'][i]}</p>
+            <div style="width:100%;height:5px;background:#2a2a38;border-radius:3px;margin-top:2px"></div>
+            <p style="font-size:.75rem;font-weight:600;margin-top:.4rem;color:var(--muted)">${['A','B','C'][i]}</p>
           </div>
         `).join('')}
       </div>
-      <p id="hanoi-moves" style="font-size:.72rem;color:var(--muted);text-align:center;margin-top:.8rem">0 / ${MIN_MOVES} mouvements minimum</p>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:.8rem">
+        <p id="hanoi-moves" style="font-size:.72rem;color:var(--muted)">0 mouvement(s) / min. ${MIN_MOVES}</p>
+        <button onclick="hanoiReset()" style="font-size:.68rem;padding:4px 12px;border-radius:6px;
+          border:1px solid #2a2a38;background:none;color:var(--muted);cursor:pointer">Recommencer</button>
+      </div>
     `;
-    renderPegs();
+    renderPegs(false);
   }
 
-  function renderPegs(){
+  function renderPegs(highlight){
     [0,1,2].forEach(pi=>{
-      const cont=document.getElementById(`hdisks-${pi}`); if(!cont) return;
-      // keep the peg rod (first child)
-      const rod=cont.querySelector('div');
-      cont.innerHTML='';
-      if(rod) cont.appendChild(rod);
-      // draw disks bottom to top
+      const cont=document.getElementById(`hdisks-${pi}`);
+      const peg=document.getElementById(`hpeg-${pi}`);
+      if(!cont||!peg) return;
+      // keep rod
+      cont.innerHTML=`<div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:5px;height:${PEG_H}px;background:#2a2a38;border-radius:3px;z-index:0"></div>`;
+      // Highlight selected peg
+      peg.style.background=selected===pi?'rgba(124,106,247,.1)':'none';
+      peg.style.borderRadius='8px';
       [...pegs[pi]].reverse().forEach(size=>{
         const dw=diskWidth(size);
         const d=document.createElement('div');
@@ -1249,56 +1569,72 @@ function renderHanoi(game, body) {
           width:${dw}px;height:${DISK_H}px;
           background:${diskColor(size)};
           border-radius:${DISK_H/2}px;
-          margin:${GAP}px 0;
-          position:relative;z-index:1;
+          margin:${GAP}px 0;position:relative;z-index:1;
           display:flex;align-items:center;justify-content:center;
-          font-size:.6rem;font-weight:600;color:rgba(0,0,0,.5);
-          transition:width .15s;
+          font-size:.65rem;font-weight:700;
+          color:rgba(0,0,0,.45);
+          box-shadow:0 2px 8px rgba(0,0,0,.3);
+          transition:transform .1s;
         `;
         d.textContent=size;
-        cont.insertBefore(d, cont.firstChild);
+        cont.insertBefore(d,cont.firstChild);
       });
-      // highlight selected
-      const peg=document.getElementById(`hpeg-${pi}`);
-      if(peg) peg.style.borderColor = selected===pi ? '#7c6af7' : 'transparent';
     });
   }
 
-  window.hanoiClick = function(pi){
-    if(won) return;
+  window.hanoiClick=function(pi){
+    if(won||animating) return;
     if(selected===null){
       if(pegs[pi].length===0){showToast('Tige vide !','error');return;}
-      selected=pi; renderPegs();
+      selected=pi; renderPegs(true);
     } else if(selected===pi){
-      selected=null; renderPegs();
+      selected=null; renderPegs(false);
     } else {
-      // try move
-      const from=pegs[selected], to=pegs[pi];
-      if(from.length===0){selected=null;renderPegs();return;}
+      const from=pegs[selected],to=pegs[pi];
+      if(from.length===0){selected=null;renderPegs(false);return;}
       const disk=from[from.length-1];
       if(to.length>0&&to[to.length-1]<disk){
-        showToast('Impossible — tu ne peux pas poser un grand disque sur un petit !','error');
-        selected=null; renderPegs(); return;
+        showToast(`Impossible — le disque ${disk} ne peut pas aller sur le disque ${to[to.length-1]} !`,'error');
+        selected=null;renderPegs(false);return;
       }
-      to.push(from.pop());
-      moveCount++;
+      // Animate
+      animating=true;
+      const prevSel=selected;
       selected=null;
-      renderPegs();
-      const m=document.getElementById('hanoi-moves');
-      if(m) m.textContent=`${moveCount} / ${MIN_MOVES} mouvements minimum`;
-      // check win — all disks on peg 2
-      if(pegs[2].length===N){
-        won=true; clearInterval(timerInterval);
-        const bonus = moveCount===MIN_MOVES?500:moveCount<=MIN_MOVES*1.5?200:0;
-        const score=Math.max(100,Math.round(timeLeft/total*1000)+bonus);
-        setTimeout(()=>gameWon(game.id,score),400);
-      }
+      setTimeout(()=>{
+        to.push(from.pop());
+        moveCount++;
+        animating=false;
+        renderPegs(false);
+        const m=document.getElementById('hanoi-moves');
+        if(m) m.textContent=`${moveCount} mouvement(s) / min. ${MIN_MOVES}`;
+        if(pegs[2].length===N){
+          won=true; clearInterval(timerInterval);
+          const perfect=moveCount===MIN_MOVES;
+          const bonus=perfect?600:moveCount<=MIN_MOVES*1.5?300:moveCount<=MIN_MOVES*2?100:0;
+          const score=Math.max(100,Math.round(timeLeft/total*1000)+bonus);
+          if(perfect) showToast('Solution parfaite ! Mouvement minimum atteint.','success');
+          setTimeout(()=>gameWon(game.id,score),500);
+        }
+      },150);
+      // Visual flash of source peg
+      const srcPeg=document.getElementById(`hpeg-${prevSel}`);
+      if(srcPeg){srcPeg.style.background='rgba(124,106,247,.2)';setTimeout(()=>srcPeg.style.background='none',140);}
     }
   };
 
+  window.hanoiReset=function(){
+    pegs=[Array.from({length:N},(_,i)=>N-i),[],[]];
+    selected=null; moveCount=0; won=false; animating=false;
+    renderPegs(false);
+    const m=document.getElementById('hanoi-moves');
+    if(m) m.textContent=`0 mouvement(s) / min. ${MIN_MOVES}`;
+  };
+
   buildBoard();
-  startTimer(total, t=>updateTimer(t,total), ()=>gameOver(game.id,0));
+  startTimer(total,t=>updateTimer(t,total),()=>gameOver(game.id,0));
 }
+
 
 
 // GENERIC fallback (jeu non implémenté)

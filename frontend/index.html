@@ -368,27 +368,60 @@ async function submitAuth() {
   const p = document.getElementById('input-password').value;
   const e = document.getElementById('input-email').value.trim();
   const err = document.getElementById('auth-error');
+
   err.classList.remove('show');
 
-  if (!u || !p) { showError('Remplis tous les champs.'); return; }
+  if (!u || !p) {
+    showError('Remplis tous les champs.');
+    return;
+  }
 
-  const url = isRegister ? `${API}/api/auth/register` : `${API}/api/auth/login`;
-  const body = isRegister ? { username: u, email: e, password: p } : { username: u, password: p };
+  const url = isRegister
+    ? `${API}/api/auth/register`
+    : `${API}/api/auth/login`;
+
+  const body = isRegister
+    ? { username: u, email: e, password: p }
+    : { username: u, password: p };
 
   try {
     const res = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify(body)
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Erreur');
+
+    // DEBUG IMPORTANT
+    console.log('STATUS:', res.status);
+
+    const text = await res.text();
+
+    console.log('RAW RESPONSE:', text);
+
+    let data = {};
+
+    try {
+      data = text ? JSON.parse(text) : {};
+    } catch {
+      throw new Error('Réponse serveur invalide');
+    }
+
+    if (!res.ok) {
+      throw new Error(data.message || `Erreur HTTP ${res.status}`);
+    }
+
     token = data.token;
     username = data.username;
+
     localStorage.setItem('pz_token', token);
     localStorage.setItem('pz_user', username);
+
     afterLogin();
+
   } catch(ex) {
+    console.error(ex);
     showError(ex.message || 'Identifiants incorrects.');
   }
 }
@@ -453,12 +486,26 @@ async function startSession(diff) {
 
   try {
     const res = await fetch(`${API}/api/games/session?difficulty=${diff}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
     });
+
+    if (!res.ok) {
+      const text = await res.text();
+      console.error(text);
+      throw new Error(`Erreur ${res.status}`);
+    }
+
     currentSession = await res.json();
+
     renderSessionGrid();
-  } catch {
-    grid.innerHTML = '<p style="color:var(--hard);padding:2rem">Erreur de connexion au serveur.</p>';
+
+  } catch(ex) {
+    console.error(ex);
+
+    grid.innerHTML =
+      '<p style="color:var(--hard);padding:2rem">Erreur de connexion au serveur.</p>';
   }
 }
 

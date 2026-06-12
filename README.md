@@ -1,3 +1,12 @@
+```bash
+  docker exec -it puzzlezen-postgres psql -U puzzlezen -d auth_db
+```
+```bash
+ INSERT INTO users (username, email, password, role) VALUES ('test', 'test@test.com', '$2a$10$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'PLAYER');
+ ```
+
+
+
 # PuzzleZen
 
 Plateforme de jeux de réflexion construite en architecture microservices Java, conteneurisée avec Docker et orchestrée par Kubernetes. Ce document retrace les décisions d'architecture, les choix techniques effectués, les problèmes rencontrés et les solutions retenues.

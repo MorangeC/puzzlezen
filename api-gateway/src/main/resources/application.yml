@@ -12,9 +12,10 @@ spring:
             allowedOrigins: "*"
             allowedMethods: "*"
             allowedHeaders: "*"
+
       routes:
-        - id: auth-service
-          uri: ${AUTH_SERVICE_URL:http://localhost:8081}
+        - id: auth
+          uri: http://auth-service:8081
           predicates:
             - Path=/api/auth/**
 

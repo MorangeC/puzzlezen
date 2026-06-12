@@ -44,13 +44,18 @@ public class AuthController {
         @ApiResponse(responseCode = "400", description = "Identifiants incorrects")
     })
     @SecurityRequirements // public
+//    @PostMapping("/login")
+//    public ResponseEntity<Map<String, String>> login(@Valid @RequestBody LoginRequest req) {
+//        System.out.println("🔥 LOGIN HIT");
+//        return ResponseEntity.ok(
+//                authService.login(req.getUsername(), req.getPassword())
+//        );
+//    }
     @PostMapping("/login")
-    public ResponseEntity<Map<String, String>> login(@Valid @RequestBody LoginRequest req) {
-        return ResponseEntity.ok(
-            authService.login(req.getUsername(), req.getPassword())
-        );
+    public ResponseEntity<?> login(@RequestBody LoginRequest req) {
+        System.out.println("🔥 CONTROLLER HIT");
+        return ResponseEntity.ok(Map.of("test", "ok"));
     }
-
     // ─── DTOs ────────────────────────────────────────────────────
 
     @Data

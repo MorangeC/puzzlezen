@@ -28,7 +28,13 @@ jobs:
 
       - name: Build & test ${{ matrix.service }}
         working-directory: ./${{ matrix.service }}
-        run: mvn verify -q
+        run: mvn verify
+
+      - name: SonarCloud Scan ${{ matrix.service }}
+        working-directory: ./${{ matrix.service }}
+        run: mvn verify sonar:sonar -DskipTests
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
   # ─── DOCKER BUILD & PUSH ──────────────────────────────────────
   docker:

@@ -20,7 +20,9 @@ public class GameService {
      * C'est la feature principale de l'appli.
      */
     public List<Game> getRandomGamesForDifficulty(Game.Difficulty difficulty) {
-        List<Game> allGames = gameRepository.findByDifficulty(difficulty);
+        List<Game> allGames = new ArrayList<>(
+                gameRepository.findByDifficulty(difficulty)
+        );
 
         if (allGames.size() < 3) {
             log.warn("Moins de 3 jeux disponibles pour le niveau {}, retour de tous les jeux disponibles", difficulty);

@@ -22,6 +22,9 @@
         <maven.compiler.release>21</maven.compiler.release>
         <sonar.organization>morangec</sonar.organization>
         <sonar.projectKey>MorangeC_puzzlezen</sonar.projectKey>
+        <sonar.coverage.jacoco.xmlReportPaths>
+            target/site/jacoco/jacoco.xml
+        </sonar.coverage.jacoco.xmlReportPaths>
     </properties>
 
     <dependencyManagement>

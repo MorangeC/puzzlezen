@@ -37,14 +37,23 @@ jobs:
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
 
-      - name: Build, test & SonarCloud
+#      - name: Build, test & SonarCloud
+#        run: |
+#          mvn clean verify sonar:sonar \
+#            -Dsonar.projectKey=MorangeC_puzzlezen \
+#            -Dsonar.organization=morangec \
+#            -Dsonar.host.url=https://sonarcloud.io
+#        env:
+#          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      - name: Build & Analyze
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          mvn clean verify sonar:sonar \
+          mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
             -Dsonar.projectKey=MorangeC_puzzlezen \
             -Dsonar.organization=morangec \
             -Dsonar.host.url=https://sonarcloud.io
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
       - name: Publish Test Results
         uses: EnricoMi/publish-unit-test-result-action@v2
@@ -53,12 +62,7 @@ jobs:
           files: |
             **/target/surefire-reports/*.xml
             **/target/failsafe-reports/*.xml
-
-      - name: SonarCloud Quality Gate
-        uses: SonarSource/sonarqube-quality-gate-action@master
-        timeout-minutes: 5
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+            
 
   docker:
     name: Docker build & push

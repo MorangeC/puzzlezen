@@ -36,14 +36,15 @@ public class LeaderboardService {
     public List<LeaderboardEntry> getTop(String difficulty, int limit) {
         String key = KEY_PREFIX + difficulty;
         Set<ZSetOperations.TypedTuple<String>> tuples =
-                redisTemplate.opsForZSet().reverseRangeWithScores(key, 0, limit - 1);
+                redisTemplate.opsForZSet()
+                        .reverseRangeWithScores(key, 0L, (long) limit - 1);
         return toEntries(tuples);
     }
 
     /** Classement global toutes difficultés confondues */
     public List<LeaderboardEntry> getGlobalTop(int limit) {
         Set<ZSetOperations.TypedTuple<String>> tuples =
-                redisTemplate.opsForZSet().reverseRangeWithScores(KEY_GLOBAL, 0, limit - 1);
+                redisTemplate.opsForZSet().reverseRangeWithScores(KEY_GLOBAL, 0L, (long) limit - 1);
         return toEntries(tuples);
     }
 

@@ -1,6 +1,8 @@
 package com.puzzlezen.game.controller;
 
 import com.puzzlezen.game.model.Game;
+import com.puzzlezen.game.model.GameRequest;
+import com.puzzlezen.game.model.GameResponse;
 import com.puzzlezen.game.service.GameService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -10,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Tag(name = "Games", description = "Banque de jeux et sélection aléatoire pour les sessions")
@@ -28,7 +31,6 @@ public class GameController {
     public ResponseEntity<List<Game>> getGameSession(
             @Parameter(description = "Niveau de difficulté", example = "EASY")
             @RequestParam Game.Difficulty difficulty) {
-        System.out.println("difficulty = " + difficulty); // 👈 ICI
         List<Game> games = gameService.getRandomGamesForDifficulty(difficulty);
         return ResponseEntity.ok(games);
     }
@@ -53,7 +55,26 @@ public class GameController {
 
     @Operation(summary = "Ajouter un jeu (admin)", description = "Ajoute un nouveau jeu à la banque MongoDB")
     @PostMapping
-    public ResponseEntity<Game> createGame(@RequestBody Game game) {
-        return ResponseEntity.ok(gameService.save(game));
+    public ResponseEntity<GameResponse> createGame(@RequestBody GameRequest request) {
+
+        Game game = new Game();
+        game.setTitle(request.title());
+        game.setType(request.type());
+        game.setDifficulty(request.difficulty());
+        game.setConfig(request.config());
+        game.setCreatedAt(LocalDateTime.now());
+
+        Game saved = gameService.save(game);
+
+        return ResponseEntity.ok(
+                new GameResponse(
+                        saved.getId(),
+                        saved.getTitle(),
+                        saved.getType(),
+                        saved.getDifficulty(),
+                        saved.getConfig(),
+                        saved.getCreatedAt()
+                )
+        );
     }
 }

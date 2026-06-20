@@ -26,10 +26,6 @@ public class AuthController {
     private final AuthService authService;
 
     @Operation(summary = "Créer un compte", description = "Retourne un JWT token valide 24h")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Compte créé, token retourné"),
-        @ApiResponse(responseCode = "400", description = "Username ou email déjà utilisé")
-    })
     @SecurityRequirements // public — pas besoin de JWT
     @PostMapping("/register")
     public ResponseEntity<Map<String, String>> register(@Valid @RequestBody RegisterRequest req) {
@@ -39,17 +35,7 @@ public class AuthController {
     }
 
     @Operation(summary = "Se connecter", description = "Retourne un JWT token valide 24h")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Connexion réussie, token retourné"),
-        @ApiResponse(responseCode = "400", description = "Identifiants incorrects")
-    })
-    @SecurityRequirements // public
-//    @PostMapping("/login")
-//    public ResponseEntity<Map<String, String>> login(@Valid @RequestBody LoginRequest req) {
-//        return ResponseEntity.ok(
-//                authService.login(req.getUsername(), req.getPassword())
-//        );
-//    }
+    @SecurityRequirements
     @PostMapping("/login")
     public ResponseEntity<Map> login(@RequestBody LoginRequest req) {
         return ResponseEntity.ok(Map.of("test", "ok"));

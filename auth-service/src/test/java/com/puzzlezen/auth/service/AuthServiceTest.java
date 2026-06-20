@@ -39,8 +39,8 @@ class AuthServiceTest {
         Map<String, String> result = authService.register("morgan", "morgan@test.com", "password123");
 
         assertThat(result).containsKey("token");
-        assertThat(result.get("token")).isEqualTo("jwt-token");
-        assertThat(result.get("username")).isEqualTo("morgan");
+        assertThat(result).containsEntry("token", "jwt-token");
+        assertThat(result).containsEntry("username", "morgan");
         verify(userRepository).save(any(User.class));
     }
 
@@ -77,7 +77,8 @@ class AuthServiceTest {
 
         Map<String, String> result = authService.login("morgan", "password123");
 
-        assertThat(result.get("token")).isEqualTo("jwt-token");
+        assertThat(result).containsEntry("token", "jwt-token");
+
     }
 
     @Test

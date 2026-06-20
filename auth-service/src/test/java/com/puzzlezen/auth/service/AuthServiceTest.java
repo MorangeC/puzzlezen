@@ -38,9 +38,10 @@ class AuthServiceTest {
 
         Map<String, String> result = authService.register("morgan", "morgan@test.com", "password123");
 
-        assertThat(result).containsKey("token");
-        assertThat(result).containsEntry("token", "jwt-token");
-        assertThat(result).containsEntry("username", "morgan");
+        assertThat(result)
+                .containsKey("token")
+                .containsEntry("token", "jwt-token")
+                .containsEntry("username", "morgan");
         verify(userRepository).save(any(User.class));
     }
 

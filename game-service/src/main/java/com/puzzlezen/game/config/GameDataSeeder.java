@@ -22,6 +22,11 @@ public class GameDataSeeder implements CommandLineRunner {
 
     private final GameRepository gameRepository;
 
+    private static final String TIMELIMIT = "timeLimit";
+    private static final String ORIENTATION = "orientation";
+    private static final String LENGTH = "length";
+    private static final String IS_TARGET = "isTarget";
+
     @Override
     public void run(String... args) {
         if (gameRepository.count() > 0) {
@@ -40,7 +45,7 @@ public class GameDataSeeder implements CommandLineRunner {
             // ─── FACILE ──────────────────────────────────────────
             Game.builder()
                 .title("Sudoku 4×4")
-                .type(Game.GameType.SUDOKU_4x4)
+                .type(Game.GameType.SUDOKU_4)
                 .difficulty(Game.Difficulty.EASY)
                 .createdAt(LocalDateTime.now())
                 .config(Map.of(
@@ -56,7 +61,7 @@ public class GameDataSeeder implements CommandLineRunner {
                         List.of(2, 1, 4, 3),
                         List.of(4, 3, 2, 1)
                     ),
-                    "timeLimit", 300
+                    TIMELIMIT, 300
                 ))
                 .build(),
 
@@ -69,7 +74,7 @@ public class GameDataSeeder implements CommandLineRunner {
                     "imageUrl", "/assets/puzzles/landscape.jpg",
                     "pieces", 9,
                     "gridSize", "3x3",
-                    "timeLimit", 180
+                    TIMELIMIT, 180
                 ))
                 .build(),
 
@@ -82,7 +87,7 @@ public class GameDataSeeder implements CommandLineRunner {
                     "message", ".... . .-.. .-.. ---",
                     "answer", "HELLO",
                     "hint", "5 lettres, un mot courant",
-                    "timeLimit", 120
+                    TIMELIMIT, 120
                 ))
                 .build(),
 
@@ -97,12 +102,12 @@ public class GameDataSeeder implements CommandLineRunner {
                     "exitCol", 5,
                     "exitRow", 2,
                     "cars", List.of(
-                        Map.of("id","player","row",2,"col",0,"length",2,"orientation","H","isTarget",true),
-                        Map.of("id","A","row",0,"col",2,"length",2,"orientation","V","isTarget",false),
-                        Map.of("id","B","row",1,"col",3,"length",3,"orientation","H","isTarget",false),
-                        Map.of("id","C","row",3,"col",1,"length",2,"orientation","H","isTarget",false)
+                        Map.of("id","player","row",2,"col",0,LENGTH,2,ORIENTATION,"H",IS_TARGET,true),
+                        Map.of("id","A","row",0,"col",2,LENGTH,2,ORIENTATION,"V",IS_TARGET,false),
+                        Map.of("id","B","row",1,"col",3,LENGTH,3,ORIENTATION,"H",IS_TARGET,false),
+                        Map.of("id","C","row",3,"col",1,LENGTH,2,ORIENTATION,"H",IS_TARGET,false)
                     ),
-                    "timeLimit", 240
+                    TIMELIMIT, 240
                 ))
                 .build(),
 
@@ -115,7 +120,7 @@ public class GameDataSeeder implements CommandLineRunner {
                     "size", "10x10",
                     "start", Map.of("x",0,"y",0),
                     "end", Map.of("x",9,"y",9),
-                    "timeLimit", 180
+                    TIMELIMIT, 180
                 ))
                 .build(),
 
@@ -127,20 +132,20 @@ public class GameDataSeeder implements CommandLineRunner {
                 .config(Map.of(
                     "targetImage", "/assets/recreate/city.jpg",
                     "elements", 12,
-                    "timeLimit", 300
+                    TIMELIMIT, 300
                 ))
                 .build(),
 
             // ─── DIFFICILE ───────────────────────────────────────
             Game.builder()
                 .title("Sudoku 9×9")
-                .type(Game.GameType.SUDOKU_9x9)
+                .type(Game.GameType.SUDOKU_9)
                 .difficulty(Game.Difficulty.HARD)
                 .createdAt(LocalDateTime.now())
                 .config(Map.of(
                     "difficulty", "expert",
                     "givenCells", 22,
-                    "timeLimit", 1200
+                    TIMELIMIT, 1200
                 ))
                 .build(),
 
@@ -154,7 +159,7 @@ public class GameDataSeeder implements CommandLineRunner {
                     "answer", "HELLO WORLD",
                     "shift", 3,
                     "hint", "César utilisait souvent le décalage 3",
-                    "timeLimit", 180
+                    TIMELIMIT, 180
                 ))
                 .build(),
 
@@ -166,7 +171,7 @@ public class GameDataSeeder implements CommandLineRunner {
                 .config(Map.of(
                     "disks", 5,
                     "minMoves", 31,
-                    "timeLimit", 600
+                    TIMELIMIT, 600
                 ))
                 .build()
         );

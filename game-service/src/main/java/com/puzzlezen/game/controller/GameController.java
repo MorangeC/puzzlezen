@@ -28,6 +28,7 @@ public class GameController {
     public ResponseEntity<List<Game>> getGameSession(
             @Parameter(description = "Niveau de difficulté", example = "EASY")
             @RequestParam Game.Difficulty difficulty) {
+        System.out.println("difficulty = " + difficulty); // 👈 ICI
         List<Game> games = gameService.getRandomGamesForDifficulty(difficulty);
         return ResponseEntity.ok(games);
     }

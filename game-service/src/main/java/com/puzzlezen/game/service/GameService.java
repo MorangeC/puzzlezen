@@ -20,6 +20,8 @@ public class GameService {
      * C'est la feature principale de l'appli.
      */
     public List<Game> getRandomGamesForDifficulty(Game.Difficulty difficulty) {
+
+        log.info("Fetching games for difficulty {}", difficulty); // 👈 ICI
         List<Game> allGames = new ArrayList<>(
                 gameRepository.findByDifficulty(difficulty)
         );

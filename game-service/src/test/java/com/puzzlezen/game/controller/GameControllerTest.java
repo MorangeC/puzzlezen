@@ -31,7 +31,7 @@ class GameControllerTest {
     @DisplayName("GET /api/games/session?difficulty=EASY retourne 200 et 3 jeux")
     void sessionEndpointReturnsThreeGames() throws Exception {
         List<Game> mockGames = List.of(
-                Game.builder().id("1").title("Sudoku 4x4").type(Game.GameType.SUDOKU_4x4)
+                Game.builder().id("1").title("Sudoku 4x4").type(Game.GameType.SUDOKU_4)
                         .difficulty(Game.Difficulty.EASY).config(Map.of("timeLimit", 300)).build(),
                 Game.builder().id("2").title("Morse").type(Game.GameType.MORSE_DECODE)
                         .difficulty(Game.Difficulty.EASY).config(Map.of("timeLimit", 120)).build(),

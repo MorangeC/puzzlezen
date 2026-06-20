@@ -523,7 +523,7 @@ const GAME_LABELS = {
 function renderSessionGrid() {
   const grid = document.getElementById('games-grid');
   grid.innerHTML = currentSession.map((g, i) => {
-    const done = completedGames.has(g.id) || completedGames.has(i);
+    const done = completedGames.has(g.id);
     return `
     <div class="game-card ${done ? 'completed' : ''}" id="gc-${g.id}" onclick="${done ? '' : `openGame(${i})`}">
       <div class="game-num">JEU ${i+1} / 3 ${done ? '✓' : ''}</div>
@@ -573,8 +573,9 @@ function startTimer(seconds, onTick, onEnd) {
 // ── GAME RENDERERS ────────────────────────────────────────────────
 function renderGame(game) {
   const body = document.getElementById('modal-body');
-  if      (game.type === 'SUDOKU_4x4')     renderSudoku(game, body, 4);
-  else if (game.type === 'SUDOKU_9x9')     renderSudoku9(game, body);
+  if      (game.type === 'SUDOKU_4')       renderSudoku(game, body, 4);
+  else if (game.type === 'SUDOKU_9')       renderSudoku9(game, body);
+  else if (game.type === 'MORSE_DECODE')   renderMorse(game, body);
   else if (game.type === 'MORSE_DECODE')   renderMorse(game, body);
   else if (game.type === 'PARKING_RUSH')   renderParking(game, body);
   else if (game.type === 'CAESAR_CIPHER')  renderCaesar(game, body);
@@ -1703,10 +1704,8 @@ function renderGeneric(game, body) {
 function gameWon(gameId, score) {
   clearInterval(timerInterval);
   completedGames.add(gameId);
-  // Aussi stocker l'index pour robustesse si l'ID est temporaire
-  const gameIdx = currentSession.findIndex(g => g.id === gameId);
-  if (gameIdx >= 0) completedGames.add(gameIdx);
   sessionScore += score;
+
   const body = document.getElementById('modal-body');
   body.innerHTML = `
     <div class="result-box">

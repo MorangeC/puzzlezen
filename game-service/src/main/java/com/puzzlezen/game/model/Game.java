@@ -1,8 +1,6 @@
 package com.puzzlezen.game.model;
 
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import java.time.LocalDateTime;
@@ -10,6 +8,8 @@ import java.util.Map;
 
 @Data
 @Setter
+@Builder
+@AllArgsConstructor
 @NoArgsConstructor
 @Document(collection = "games")
 public class Game {

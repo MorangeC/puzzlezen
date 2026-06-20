@@ -11,7 +11,8 @@ services:
       POSTGRES_MULTIPLE_DATABASES: auth_db,user_db
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./scripts/01_init_databases.sql:/docker-entrypoint-initdb.d/01_init_databases.sql
+      - ./scripts/02_create_users_table.sql:/docker-entrypoint-initdb.d/02_create_users_table.sql
     ports:
       - "5432:5432"
     healthcheck:

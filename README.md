@@ -5,7 +5,28 @@
  INSERT INTO users (username, email, password, role) VALUES ('test', 'test@test.com', '$2a$10$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'PLAYER');
  ```
 
-
+```bash
+docker exec -it puzzlezen-mongo mongosh -u puzzlezen -p
+```
+Puis :
+```bash
+use game_db
+db.games.drop()
+exit
+```
+Puis redémarrer le service :
+```bash
+docker restart puzzlezen-game
+```
+Attendre ~10 secondes, puis vérifier les logs normalement on a :
+```bash
+docker logs puzzlezen-game --tail 15
+```
+résultat :
+```bash
+Peuplement de la banque de jeux...
+✅ 9 jeux insérés.
+```
 
 # PuzzleZen
 

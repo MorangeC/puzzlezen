@@ -248,6 +248,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:1.5
         <div class="field">
           <label>Mot de passe</label>
           <input type="password" id="input-password" placeholder="••••••••"/>
+          <p style="font-size:.65rem;color:var(--muted);margin-top:.3rem">8 caractères minimum</p>
         </div>
         <p class="error-msg" id="auth-error"></p>
         <button class="btn-primary" id="auth-btn" onclick="submitAuth()">Se connecter</button>
@@ -409,6 +410,11 @@ async function submitAuth() {
     }
 
     if (!res.ok) {
+      // Gère le format d'erreur de validation Spring (@Valid)
+      if (data.errors && typeof data.errors === 'object') {
+        const messages = Object.values(data.errors).join(' · ');
+        throw new Error(messages || `Erreur HTTP ${res.status}`);
+      }
       throw new Error(data.message || `Erreur HTTP ${res.status}`);
     }
 
@@ -575,7 +581,6 @@ function renderGame(game) {
   const body = document.getElementById('modal-body');
   if      (game.type === 'SUDOKU_4')       renderSudoku(game, body, 4);
   else if (game.type === 'SUDOKU_9')       renderSudoku9(game, body);
-  else if (game.type === 'MORSE_DECODE')   renderMorse(game, body);
   else if (game.type === 'MORSE_DECODE')   renderMorse(game, body);
   else if (game.type === 'PARKING_RUSH')   renderParking(game, body);
   else if (game.type === 'CAESAR_CIPHER')  renderCaesar(game, body);
@@ -1610,9 +1615,11 @@ function renderHanoi(game, body) {
       // Highlight selected peg
       peg.style.background=selected===pi?'rgba(124,106,247,.1)':'none';
       peg.style.borderRadius='8px';
+
       [...pegs[pi]].reverse().forEach(size=>{
         const dw=diskWidth(size);
         const d=document.createElement('div');
+
         d.style.cssText=`
           width:${dw}px;height:${DISK_H}px;
           background:${diskColor(size)};
@@ -1624,8 +1631,9 @@ function renderHanoi(game, body) {
           box-shadow:0 2px 8px rgba(0,0,0,.3);
           transition:transform .1s;
         `;
+
         d.textContent=size;
-        cont.insertBefore(d,cont.firstChild);
+        cont.appendChild(d);
       });
     });
   }

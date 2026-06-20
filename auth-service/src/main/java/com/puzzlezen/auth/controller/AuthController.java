@@ -46,14 +46,12 @@ public class AuthController {
     @SecurityRequirements // public
 //    @PostMapping("/login")
 //    public ResponseEntity<Map<String, String>> login(@Valid @RequestBody LoginRequest req) {
-//        System.out.println("🔥 LOGIN HIT");
 //        return ResponseEntity.ok(
 //                authService.login(req.getUsername(), req.getPassword())
 //        );
 //    }
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest req) {
-        System.out.println("🔥 CONTROLLER HIT");
+    public ResponseEntity<Map> login(@RequestBody LoginRequest req) {
         return ResponseEntity.ok(Map.of("test", "ok"));
     }
     // ─── DTOs ────────────────────────────────────────────────────

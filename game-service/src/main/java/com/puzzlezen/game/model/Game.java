@@ -27,8 +27,8 @@ public class Game {
     private LocalDateTime createdAt;
 
     public enum GameType {
-        SUDOKU_4x4,
-        SUDOKU_9x9,
+        SUDOKU_4,
+        SUDOKU_9,
         PUZZLE_IMAGE,
         MORSE_DECODE,
         PARKING_RUSH,

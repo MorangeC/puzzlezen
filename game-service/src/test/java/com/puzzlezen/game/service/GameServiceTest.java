@@ -34,7 +34,7 @@ class GameServiceTest {
                 .mapToObj(i -> Game.builder()
                         .id("id-" + i)
                         .title("Game " + i)
-                        .type(Game.GameType.SUDOKU_4x4)
+                        .type(Game.GameType.SUDOKU_4)
                         .difficulty(Game.Difficulty.EASY)
                         .build())
                 .toList();

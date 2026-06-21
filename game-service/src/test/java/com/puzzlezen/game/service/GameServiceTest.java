@@ -79,8 +79,8 @@ class GameServiceTest {
 
         List<Game> result = gameService.getRandomGamesForDifficulty(Game.Difficulty.EASY);
 
-        assertThat(result).hasSize(3);
         assertThat(result)
+                .hasSize(3)
                 .allMatch(game -> game.getDifficulty() == Game.Difficulty.EASY);
     }
 

@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -56,8 +57,7 @@ public class GameController {
 
     @Operation(summary = "Ajouter un jeu (admin)", description = "Ajoute un nouveau jeu à la banque MongoDB")
     @PostMapping
-    public ResponseEntity<GameResponse> createGame(@RequestBody GameRequest request) {
-
+    public ResponseEntity<GameResponse> createGame(@Valid @RequestBody GameRequest request) {
         Game game = new Game();
         game.setTitle(request.title());
         game.setType(request.type());

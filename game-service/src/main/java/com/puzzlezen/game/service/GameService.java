@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.time.ZoneId;
 
 @Slf4j
 @Service
@@ -21,7 +22,6 @@ public class GameService {
      */
     public List<Game> getRandomGamesForDifficulty(Game.Difficulty difficulty) {
 
-        log.info("Fetching games for difficulty {}", difficulty); // 👈 ICI
         List<Game> allGames = new ArrayList<>(
                 gameRepository.findByDifficulty(difficulty)
         );
@@ -41,7 +41,7 @@ public class GameService {
     }
 
     public Game save(Game game) {
-        game.setCreatedAt(java.time.LocalDateTime.now());
+        game.setCreatedAt(java.time.LocalDateTime.now(ZoneId.of("UTC")));
         return gameRepository.save(game);
     }
 

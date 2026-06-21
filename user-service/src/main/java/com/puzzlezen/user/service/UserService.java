@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.time.ZoneId;
 
 @Slf4j
 @Service
@@ -59,7 +60,7 @@ public class UserService {
                 profile.setGamesWon(profile.getGamesWon() + 1);
                 profile.setTotalScore(profile.getTotalScore() + score);
             }
-            profile.setLastPlayedAt(LocalDateTime.now());
+            profile.setLastPlayedAt(LocalDateTime.now(ZoneId.of("UTC")));
             profileRepository.save(profile);
         });
 

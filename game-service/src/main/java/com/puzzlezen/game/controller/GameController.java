@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.time.ZoneId;
 
 @Tag(name = "Games", description = "Banque de jeux et sélection aléatoire pour les sessions")
 @RestController
@@ -62,7 +63,7 @@ public class GameController {
         game.setType(request.type());
         game.setDifficulty(request.difficulty());
         game.setConfig(request.config());
-        game.setCreatedAt(LocalDateTime.now());
+        game.setCreatedAt(LocalDateTime.now(ZoneId.of("UTC")));
 
         Game saved = gameService.save(game);
 

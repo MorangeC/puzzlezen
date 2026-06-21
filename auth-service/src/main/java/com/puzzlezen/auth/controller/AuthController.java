@@ -34,11 +34,14 @@ public class AuthController {
         );
     }
 
+    // AUTH QUI MARCHE INCH'ALLAH
     @Operation(summary = "Se connecter", description = "Retourne un JWT token valide 24h")
     @SecurityRequirements
     @PostMapping("/login")
-    public ResponseEntity<Map> login(@RequestBody LoginRequest req) {
-        return ResponseEntity.ok(Map.of("test", "ok"));
+    public ResponseEntity<Map<String, String>> login(@Valid @RequestBody LoginRequest req) {
+        return ResponseEntity.ok(
+            authService.login(req.getUsername(), req.getPassword())
+        );
     }
     // ─── DTOs ────────────────────────────────────────────────────
 

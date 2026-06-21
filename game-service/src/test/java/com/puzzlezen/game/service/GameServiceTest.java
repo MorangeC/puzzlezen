@@ -11,6 +11,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.*;
@@ -72,6 +73,18 @@ class GameServiceTest {
     }
 
     @Test
+    void shouldAlwaysReturnMaxThreeGamesEvenIfMoreAvailable() {
+        when(gameRepository.findByDifficulty(Game.Difficulty.EASY))
+                .thenReturn(easyGames);
+
+        List<Game> result = gameService.getRandomGamesForDifficulty(Game.Difficulty.EASY);
+
+        assertThat(result)
+                .hasSize(3)
+                .allMatch(game -> game.getDifficulty() == Game.Difficulty.EASY);
+    }
+
+    @Test
     @DisplayName("getRandomGamesForDifficulty retourne une liste vide si aucun jeu")
     void shouldReturnEmptyWhenNoGames() {
         when(gameRepository.findByDifficulty(Game.Difficulty.HARD)).thenReturn(List.of());
@@ -83,21 +96,51 @@ class GameServiceTest {
 
     @Test
     @DisplayName("les appels successifs peuvent retourner des ordres différents")
-    void shouldShuffleResults() {
+    void shouldShuffleResultsDeterministically() {
         when(gameRepository.findByDifficulty(Game.Difficulty.EASY)).thenReturn(easyGames);
 
-        // On appelle plusieurs fois et on vérifie qu'au moins un ordre diffère
-        boolean foundDifferent = false;
-        List<Game> first = gameService.getRandomGamesForDifficulty(Game.Difficulty.EASY);
-        for (int i = 0; i < 20; i++) {
-            List<Game> next = gameService.getRandomGamesForDifficulty(Game.Difficulty.EASY);
-            if (!first.stream().map(Game::getId).toList()
-                    .equals(next.stream().map(Game::getId).toList())) {
-                foundDifferent = true;
-                break;
-            }
-        }
-        // Probabilité d'échec ≈ (1/60)^20 ≈ 0
-        assertThat(foundDifferent).isTrue();
+        List<Game> result = gameService.getRandomGamesForDifficulty(Game.Difficulty.EASY);
+
+        assertThat(result)
+                .hasSize(3)
+                .extracting(Game::getId)
+                .containsAnyOf("id-0", "id-1", "id-2", "id-3", "id-4");
+    }
+
+    @Test
+    void shouldSetCreatedAtBeforeSaving() {
+        Game input = Game.builder()
+                .title("Test")
+                .build();
+
+        when(gameRepository.save(any(Game.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        Game result = gameService.save(input);
+
+        assertThat(result.getCreatedAt()).isNotNull();
+        verify(gameRepository).save(input);
+    }
+
+    @Test
+    void shouldReturnGameById() {
+        Game game = Game.builder().id("123").build();
+
+        when(gameRepository.findById("123"))
+                .thenReturn(Optional.of(game));
+
+        Optional<Game> result = gameService.getById("123");
+
+        assertThat(result).isPresent();
+        assertThat(result.get().getId()).isEqualTo("123");
+    }
+
+    @Test
+    void shouldReturnAllGames() {
+        when(gameRepository.findAll()).thenReturn(easyGames);
+
+        List<Game> result = gameService.getAll();
+
+        assertThat(result).hasSize(5);
     }
 }

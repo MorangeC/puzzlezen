@@ -8,12 +8,14 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.time.ZoneId;
 
 @Tag(name = "Games", description = "Banque de jeux et sélection aléatoire pour les sessions")
 @RestController
@@ -55,14 +57,13 @@ public class GameController {
 
     @Operation(summary = "Ajouter un jeu (admin)", description = "Ajoute un nouveau jeu à la banque MongoDB")
     @PostMapping
-    public ResponseEntity<GameResponse> createGame(@RequestBody GameRequest request) {
-
+    public ResponseEntity<GameResponse> createGame(@Valid @RequestBody GameRequest request) {
         Game game = new Game();
         game.setTitle(request.title());
         game.setType(request.type());
         game.setDifficulty(request.difficulty());
         game.setConfig(request.config());
-        game.setCreatedAt(LocalDateTime.now());
+        game.setCreatedAt(LocalDateTime.now(ZoneId.of("UTC")));
 
         Game saved = gameService.save(game);
 

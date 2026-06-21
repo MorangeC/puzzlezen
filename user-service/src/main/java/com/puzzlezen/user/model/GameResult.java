@@ -3,6 +3,7 @@ package com.puzzlezen.user.model;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 @Data
 @Builder
@@ -34,5 +35,5 @@ public class GameResult {
     private boolean completed;
 
     @Builder.Default
-    private LocalDateTime playedAt = LocalDateTime.now();
+    private LocalDateTime playedAt = LocalDateTime.now(ZoneId.of("UTC"));
 }

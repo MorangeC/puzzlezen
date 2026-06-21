@@ -1,1 +1,0 @@
-docker exec -it puzzlezen-mongo mongosh -u puzzlezen -p

@@ -1,11 +1,14 @@
 package com.puzzlezen.game.model;
 
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+
 import java.util.Map;
 
 public record GameRequest(
-        String title,
-        Game.GameType type,
-        Game.Difficulty difficulty,
+        @NotBlank String title,
+        @NotNull Game.GameType type,
+        @NotNull Game.Difficulty difficulty,
         Map<String, Object> config
 ) {}
